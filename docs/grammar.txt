@@ -1,0 +1,97 @@
+Tokens: (items preceded by _ are not included in actual implementation tokens)
+
+PLUS -> "+"
+MINUS -> "-"
+TILDE -> "~"
+BANG -> "!"
+HASH -> "#"
+EQUAL -> "="
+WALRUS -> ":="
+DOUBLE_EQUAL -> "=="
+TRIPLE_EQUAL -> "==="
+LT -> "<"
+GT -> ">"
+LT_EQUAL -> "<="
+GT_EQUAL -> ">="
+COMMA -> ","
+DOT -> "."
+COLON -> ":"
+SEMICOLON -> ";"
+QUESTION -> "?"
+AT -> "@"
+PLUS -> "+"
+MINUS -> "-"
+MI
+STAR -> "*"
+SLASH -> "/"
+BACKSLASH -> "\"
+MODULO -> "%"
+AND -> "&"
+DOUBLE_AND -> "&&"
+OR -> "|"
+DOUBLE_OR -> "||"
+BANG_EQUAL -> "!="
+XOR -> "^"
+_ QUOTE -> "'"
+_ DOUBLE_QUOTE -> """
+L_PAREN -> "("
+R_PAREN -> ")"
+L_CURLY -> "{"
+R_CURLY -> "}"
+L_SQUARE -> "["
+R_SQUARE -> "]"
+IF -> "if"
+THEN -> "then"
+ELSE -> "else"
+WHILE -> "while"
+DO -> "do"
+OVER -> "over"
+_ DIGIT -> "0"..."9"
+_ LETTER -> "a"..."b" | "A"..."B"
+NUMBER -> DIGIT { "_" | DIGIT }
+ID -> LETTER { LETTER | NUMBER | "_" }
+STRING -> DOUBLE_QUOTE { . } DOUBLE_QUOTE | QUOTE { . } QUOTE
+TAG -> HASH [ ID ]
+
+Rules:
+
+literal -> STRING | NUMBER
+atom -> ID | literal
+
+bitwise_op -> AND | OR | XOR
+add_op -> PLUS | MINUS
+mul_op -> STAR | SLASH | MODULO
+relative_op -> TRIPLE_EQUAL | DOUBLE_EQUAL | BANG_EQUAL | LT | GT | LT_EQUAL | GT_EQUAL | TILDE
+logic_op -> DOUBLE_AND | DOUBLE_OR
+binary_op -> bitwise_op | add_op | mul_op | relative_op | logic_op
+unary_op -> PLUS | MINUS | TILDE | BANG
+
+id_concatenation -> ID { COMMA ID }
+
+basic_block -> L_CURLY { statement } R_CURLY
+conditional_block -> L_PAREN id_concatenation R_PAREN basic_block
+block -> basic_block | conditional_block | atom
+evaluator -> L_PAREN [ concatenation ] R_PAREN
+
+declaration_stmt -> TAG ID
+initialisation_stmt -> TAG assignment_stmt | TAG binding_stmt
+assignment_stmt -> ID EQUAL expression
+binding_stmt -> ID WALRUS expression
+statement_body -> assignment_stmt | binding_stmt | expression | declaration_stmt | initialisation_stmt | block
+statement -> statement_body SEMI
+
+concatenation_exp -> expression { COMMA expression }
+evaluation_exp -> block L_PAREN concatenation_exp R_PAREN block
+index_exp -> block L_SQUARE expression R_SQUARE | block DOT block
+decision_exp -> IF expression THEN expression [ ELSE expression ] | expression QUESTION expression [ COLON expression ]
+iteration_exp -> WHILE expression DO expression
+visit_exp -> block OVER block | block BACKSLASH block | OVER block DO block
+slice_exp -> block L_SQUARE expression COLON expression R_SQUARE
+replace_exp -> block COLON expression AT expression
+
+binary_exp -> unary_exp [ binary_op unary_exp ]
+unary_exp -> [ unary_op ] term
+term -> atom | L_PAREN expression R_PAREN
+
+expression -> [ TAG ] expression | concatenation_exp | evaluation_exp | index_exp
+                | decision_exp | iteration_exp | slice_exp | replace_exp | binary_exp

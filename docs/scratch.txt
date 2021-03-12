@@ -1,0 +1,61 @@
+OPERATORS:
+--unary--
++, -, ~, ! all same as C
+
+--binary--
+assignment          a = b                   the value of 'a' is the current value of 'b'
+bind                a := b                  the value of 'a' is bound to the value of 'b'
+dependency          a ~ b                   does the value of 'a' depend on 'b'
+equal structure     a === b                 evaluates to true if the dependency tree of 'a' is identical to that of 'b'
+concatenation       a, b                    evaluates to a value with a bit-width equal to the width of 'a' plus the width of 'b'
+evaluation          a(b)                    evaluation of 'a' given condition 'b' (always pass 'b' by reference)
+index               a[b]                    returns the dependency of 'a' in slot 'b'
+index               a.b                     equivalent to 'a[b]'
+decision            if a then b             equivalent to 'if a then b else null'
+decision            a ? b                   equivalent to 'if a then b'
+iteration           while a do b            evaluates 'a', then if 'a' has evaluated to a truthy value, evaluates 'b' and repeats
+                                            else return 'b'
+visit               a over b                evaluate 'a' given x for every symbol x in the dependency tree of 'b', return last evaluation
+visit               a \ b                   same as 'a over b'
+visit               over b do a             same as 'a over b'
+
++, -, *, /, %, &&, ||, ==, !=, <, > <=, >= &, |, ^, all same as C
++=, -=, *=, /=, %=, &&=, ||=, &=, |=, ^= will be implemented later
+&&, || both short circuit (don't evaluate RHS if not needed)
+
+--ternary--
+decision            if a then b else c      evaluates to 'b' if 'a' is truthy else to 'b'
+decision            a ? b : c               same as 'if a then b else c'
+slice               a[b:c]                  returns the concatenation of dependencies of 'a' in slots 'b' up to but not including 'c'
+replace             a: b @ c                replace all occurrences of 'c' in the dependency tree of 'a' with 'b', evaluates to new dependency tree
+
+
+SPECIAL SYMBOLS:
+null        empty node, can be assigned or bound to without effect. causes an error if evaluated
+top         root node of the whole program dependency tree. causes an error if evaluated, assigned or bound to
+return      this is the node presented by a block to its external environment
+
+
+TAGS:
+#meta       tag indicating the following expression is to be executed at compile time, then excluded from the dependency tree before program execution
+#ID         tag placed on the following block that can make indications to meta expressions and the compiler/interpreter
+#eager      any nodes marked eager will automatically update their value when any of their dependency nodes change
+#lazy       nodes marked lazy will not update their value until evaluated
+            all dependencies of eager nodes must also be eager
+            dependencies of lazy nodes may be eager or lazy
+            nodes default to lazy if not marked otherwise
+#static     an expression marked static will only be run once
+
+
+NOTES:
+-blocks evaluate to null unless they define a 'return' node
+-each block has its own namespace, accessible to its children blocks
+-all new variables must be introduced by a tag, even if it's an empty tag ('#')
+-expressions may be given multiple tags
+-comments are same as C
+-the only types are number and string, though other type systems could be implemented with meta expressions and tags
+-types are dynamic
+-evaluating a conditional block with the wrong number of conditions is an error
+-conditions are always pass-by-reference
+-blocks can be recursive, i.e., a block can evaluate itself
+-variables declared without being initialised are given a default value of 0
