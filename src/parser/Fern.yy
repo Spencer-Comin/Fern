@@ -46,9 +46,6 @@
 
 %token                  END     0   "end of file"
 
-%token                  NEWLINE
-%token <std::string>    ERROR
-
 %token <Fern::Operator> PLUS
 %token <Fern::Operator> MINUS
 
@@ -137,7 +134,6 @@ item:
     | DO        { driver.report("KEYWORD: DO"); }
     | OVER      { driver.report("KEYWORD: OVER"); }
     | special
-    | utilities
     ;
 
 operator: add_op | mul_op | logic_op | comp_op | bit_op | unary_op;
@@ -171,10 +167,6 @@ special:
     | BACKSLASH { driver.report("BACKSLASH"); }
     ;
 
-
-utilities:
-    | ERROR     { driver.report_error($1); }
-    ;
 
 %%
 

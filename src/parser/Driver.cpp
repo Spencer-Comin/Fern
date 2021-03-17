@@ -4,7 +4,6 @@
 
 #include "Driver.h"
 
-#include <cctype>
 #include <fstream>
 #include <cassert>
 #include <iostream>
@@ -53,53 +52,6 @@ void Fern::Driver::parse_helper(std::istream &stream) {
     if (parser->parse() != accept) {
         std::cerr << "Parse failed!!!\n";
     }
-}
-
-void Fern::Driver::add_upper() {
-    uppercase++;
-    chars++;
-    words++;
-    std::cout << lines << ": UPPER\n";
-}
-
-void Fern::Driver::add_lower() {
-    lowercase++;
-    chars++;
-    words++;
-    std::cout << lines << ": LOWER\n";
-}
-
-void Fern::Driver::add_word(const std::string &word) {
-    words++;
-    chars += word.length();
-    for (const char &c : word) {
-        if (islower(c)) {
-            lowercase++;
-        } else if (isupper(c)) {
-            uppercase++;
-        }
-    }
-    std::cout << lines << ": WORD \"" << word << "\"\n";
-}
-
-void Fern::Driver::add_newline() {
-    lines++;
-    chars++;
-}
-
-void Fern::Driver::add_char() {
-    chars++;
-    std::cout << lines << ": CHAR\n";
-}
-
-std::ostream &Fern::Driver::print(std::ostream &stream) const {
-    stream << "Results: " << "\n";
-    stream << "Uppercase: " << uppercase << "\n";
-    stream << "Lowercase: " << lowercase << "\n";
-    stream << "Lines: " << lines << "\n";
-    stream << "Words: " << words << "\n";
-    stream << "Characters: " << chars << "\n";
-    return stream;
 }
 
 void Fern::Driver::report_error(const std::string &msg) const {

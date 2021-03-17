@@ -17,9 +17,9 @@ using token = Fern::Parser::token;
 /* update location on matching */
 #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
 
-#define ERROR(msg)  yyval->build<std::string>(msg); return token::ERROR
+//#define ERROR(msg)  yyval->build<std::string>(msg); return token::ERROR
+#define ERROR(msg)  std::string s(msg); Fern::Parser::syntax_error exc(*loc, s); throw exc
 #define OP(op) yyval->build<Fern::Operator>(Fern::Operator::op); return token::op
-
 
 %}
 
