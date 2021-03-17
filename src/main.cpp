@@ -17,7 +17,6 @@ int main(const int argc, const char **argv) {
         } else {
             driver.parse(argv[1]);
         }
-        driver.print(std::cout) << "\n";
     } else return EXIT_FAILURE;
     return EXIT_SUCCESS;
 }

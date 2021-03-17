@@ -13,15 +13,17 @@ find_package(FLEX REQUIRED)
 BISON_TARGET(parser
         src/parser/Fern.yy
         ${CMAKE_CURRENT_BINARY_DIR}/Fern.tab.cc)
+
 FLEX_TARGET(scanner
-        src/scanner/Fern.flex++
+        src/scanner/Fern.ll
         ${CMAKE_CURRENT_BINARY_DIR}/Fern.yy.cc)
+
 ADD_FLEX_BISON_DEPENDENCY(scanner parser)
 
 add_executable(Fern src/main.cpp
         src/parser/Driver.cpp
         ${FLEX_scanner_OUTPUTS}
-        ${BISON_parser_OUTPUTS})
+        ${BISON_parser_OUTPUTS} src/parser/Operator.h src/parser/Operator.cpp)
 
 target_include_directories(Fern
         PRIVATE

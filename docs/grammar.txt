@@ -4,7 +4,6 @@ PLUS -> "+"
 MINUS -> "-"
 TILDE -> "~"
 BANG -> "!"
-HASH -> "#"
 EQUAL -> "="
 WALRUS -> ":="
 DOUBLE_EQUAL -> "=="
@@ -21,7 +20,6 @@ QUESTION -> "?"
 AT -> "@"
 PLUS -> "+"
 MINUS -> "-"
-MI
 STAR -> "*"
 SLASH -> "/"
 BACKSLASH -> "\"
@@ -51,27 +49,28 @@ _ LETTER -> "a"..."b" | "A"..."B"
 NUMBER -> DIGIT { "_" | DIGIT }
 ID -> LETTER { LETTER | NUMBER | "_" }
 STRING -> DOUBLE_QUOTE { . } DOUBLE_QUOTE | QUOTE { . } QUOTE
-TAG -> HASH [ ID ]
+TAG -> "#" [ ID ]
+TAG_LITERAL -> "`" ID
+EOF -> **END OF FILE**
 
 Rules:
 
-literal -> STRING | NUMBER
-atom -> ID | literal
+literal -> STRING | NUMBER | TAG_LITERAL
 
-bitwise_op -> AND | OR | XOR
+bit_op -> AND | OR | XOR
 add_op -> PLUS | MINUS
 mul_op -> STAR | SLASH | MODULO
-relative_op -> TRIPLE_EQUAL | DOUBLE_EQUAL | BANG_EQUAL | LT | GT | LT_EQUAL | GT_EQUAL | TILDE
+comp_op -> TRIPLE_EQUAL | DOUBLE_EQUAL | BANG_EQUAL | LT | GT | LT_EQUAL | GT_EQUAL | TILDE
 logic_op -> DOUBLE_AND | DOUBLE_OR
 binary_op -> bitwise_op | add_op | mul_op | relative_op | logic_op
 unary_op -> PLUS | MINUS | TILDE | BANG
 
 id_concatenation -> ID { COMMA ID }
 
-basic_block -> L_CURLY { statement } R_CURLY
+statement_list -> { statement }
+basic_block -> L_CURLY statement_list R_CURLY
 conditional_block -> L_PAREN id_concatenation R_PAREN basic_block
-block -> basic_block | conditional_block | atom
-evaluator -> L_PAREN [ concatenation ] R_PAREN
+block -> basic_block | conditional_block | ID | literal
 
 declaration_stmt -> TAG ID
 initialisation_stmt -> TAG assignment_stmt | TAG binding_stmt
@@ -91,7 +90,9 @@ replace_exp -> block COLON expression AT expression
 
 binary_exp -> unary_exp [ binary_op unary_exp ]
 unary_exp -> [ unary_op ] term
-term -> atom | L_PAREN expression R_PAREN
+term -> ID | literal | L_PAREN expression R_PAREN
 
 expression -> [ TAG ] expression | concatenation_exp | evaluation_exp | index_exp
                 | decision_exp | iteration_exp | slice_exp | replace_exp | binary_exp
+
+program -> statement_list EOF
