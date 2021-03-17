@@ -7,6 +7,7 @@
 #include <cctype>
 #include <fstream>
 #include <cassert>
+#include <iostream>
 
 Fern::Driver::~Driver() {
     delete (scanner);
@@ -58,12 +59,14 @@ void Fern::Driver::add_upper() {
     uppercase++;
     chars++;
     words++;
+    std::cout << lines << ": UPPER\n";
 }
 
 void Fern::Driver::add_lower() {
     lowercase++;
     chars++;
     words++;
+    std::cout << lines << ": LOWER\n";
 }
 
 void Fern::Driver::add_word(const std::string &word) {
@@ -76,6 +79,7 @@ void Fern::Driver::add_word(const std::string &word) {
             uppercase++;
         }
     }
+    std::cout << lines << ": WORD \"" << word << "\"\n";
 }
 
 void Fern::Driver::add_newline() {
@@ -85,6 +89,7 @@ void Fern::Driver::add_newline() {
 
 void Fern::Driver::add_char() {
     chars++;
+    std::cout << lines << ": CHAR\n";
 }
 
 std::ostream &Fern::Driver::print(std::ostream &stream) const {
@@ -95,4 +100,13 @@ std::ostream &Fern::Driver::print(std::ostream &stream) const {
     stream << "Words: " << words << "\n";
     stream << "Characters: " << chars << "\n";
     return stream;
+}
+
+void Fern::Driver::report_error(const std::string &msg) const {
+    std::cerr << msg << " at line " << scanner->lineno() << " \n";
+}
+
+
+void Fern::Driver::report(const std::string &msg) {
+    std::cout << scanner->lineno() << ": " << msg << "\n";
 }
