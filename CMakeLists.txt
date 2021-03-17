@@ -15,7 +15,7 @@ BISON_TARGET(parser
         ${CMAKE_CURRENT_BINARY_DIR}/Fern.tab.cc)
 
 FLEX_TARGET(scanner
-        src/scanner/Fern.ll
+        src/scanner/Fern.lex
         ${CMAKE_CURRENT_BINARY_DIR}/Fern.yy.cc)
 
 ADD_FLEX_BISON_DEPENDENCY(scanner parser)
