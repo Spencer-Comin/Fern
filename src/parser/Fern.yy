@@ -23,6 +23,7 @@
 
 
 #include "Operator.h"
+#include "AST.h"
 
 }
 
@@ -105,8 +106,19 @@
 %type  <Fern::Operator> logic_op
 %type  <Fern::Operator> comp_op
 %type  <Fern::Operator> bit_op
-%type  <Fern::Operator> unary_op
-%type  <Fern::Operator> operator
+
+%type  <Fern::Operator> binary_op
+
+%type  <Fern::ASTNode*> statement_list;
+%type  <Fern::ASTNode*> expression;
+%type  <Fern::ASTNode*> statement;
+%type  <Fern::ASTNode*> literal;
+
+%left AND OR XOR
+%left DOUBLE_AND DOUBLE_OR
+%left TRIPLE_EQUAL DOUBLE_EQUAL BANG_EQUAL LT_EQUAL GT_EQUAL LT GT TILDE
+%left PLUS MINUS
+%left STAR SLASH MODULO
 
 %locations
 
@@ -116,57 +128,65 @@
 
 %%
 
-list_option: END | list END;
-
-list: item | list item;
-
-item: 
-    | operator  { driver.report("OPERATOR: " + Fern::opToString($1)); }
-    | NUMBER    { driver.report("NUMBER: " + $1); }
-    | ID        { driver.report("ID: " + $1); }
-    | STRING    { driver.report("STRING: " + $1); }
-    | TAG       { driver.report("TAG: " + $1); }
-    | TAG_LITERAL   { driver.report("TAG_LITERAL: " + $1); }
-    | IF        { driver.report("KEYWORD: IF"); }
-    | THEN      { driver.report("KEYWORD: THEN"); }
-    | ELSE      { driver.report("KEYWORD: ELSE"); }
-    | WHILE     { driver.report("KEYWORD: WHILE"); }
-    | DO        { driver.report("KEYWORD: DO"); }
-    | OVER      { driver.report("KEYWORD: OVER"); }
-    | special
+program:
+    statement_list END
+        {
+            driver.setASTRoot($1);
+        }
     ;
 
-operator: add_op | mul_op | logic_op | comp_op | bit_op | unary_op;
+statement_list:
+    statement_list statement
+        {
+            $$ = $1;
+            $$->children.push_back($2);
+        }
+    | %empty
+        {
+            $$ = new Fern::ASTBranch();
+        }
+    ;
 
-add_op: PLUS | MINUS;
+statement: expression SEMICOLON;
+
+expression:
+    expression binary_op expression
+        {
+            $$ = new Fern::Binary($1, $3, $2);
+        }
+    | ID
+        {
+            $$ = new Fern::ID($1);
+        }
+    | literal
+    ;
+
+literal:
+    STRING
+        {
+            $$ = new Fern::Literal($1, Fern::Literal::STRING);
+        }
+    | NUMBER
+        {
+            $$ = new Fern::Literal($1, Fern::Literal::NUMBER);
+        }
+    | TAG_LITERAL
+        {
+            $$ = new Fern::Literal($1, Fern::Literal::TAG_LITERAL);
+        }
+    ;
 
 mul_op: STAR | SLASH | MODULO;
 
-logic_op: DOUBLE_AND | DOUBLE_OR;
+add_op: PLUS | MINUS;
 
 comp_op: TRIPLE_EQUAL | DOUBLE_EQUAL | BANG_EQUAL | LT_EQUAL | GT_EQUAL | LT | GT | TILDE;
 
+logic_op: DOUBLE_AND | DOUBLE_OR;
+
 bit_op: AND | OR | XOR;
 
-unary_op: BANG;
-
-special:
-    L_PAREN     { driver.report("L_PAREN"); }
-    | R_PAREN   { driver.report("R_PAREN"); }
-    | L_CURLY   { driver.report("L_CURLY"); }
-    | R_CURLY   { driver.report("R_CURLY"); }
-    | L_SQUARE  { driver.report("L_SQUARE"); }
-    | R_SQUARE  { driver.report("R_SQUARE"); }
-    | WALRUS    { driver.report("WALRUS"); }
-    | EQUAL     { driver.report("EQUAL"); }
-    | COMMA     { driver.report("COMMA"); }
-    | COLON     { driver.report("COLON"); }
-    | SEMICOLON { driver.report("SEMICOLON"); }
-    | QUESTION  { driver.report("QUESTION"); }
-    | AT        { driver.report("AT"); }
-    | BACKSLASH { driver.report("BACKSLASH"); }
-    ;
-
+binary_op: add_op | mul_op | logic_op | comp_op | bit_op;
 
 %%
 

@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cassert>
 #include <iostream>
+#include <stdexcept>
 
 Fern::Driver::~Driver() {
     delete (scanner);
@@ -61,4 +62,18 @@ void Fern::Driver::report_error(const std::string &msg) const {
 
 void Fern::Driver::report(const std::string &msg) {
     std::cout << scanner->lineno() << ": " << msg << "\n";
+}
+
+void Fern::Driver::setASTRoot(Fern::ASTNode *new_root) {
+    root = new_root;
+}
+
+void Fern::Driver::printAST(int indent, Fern::ASTNode *node) {
+    if (node == nullptr) node = root;
+//    std::cout << std::string(indent, '\t');
+//    std::cout << *node << '\n';
+//    for (auto &child : node->children)
+//        printAST(indent + 1, child);
+    std::cout << *root;
+
 }

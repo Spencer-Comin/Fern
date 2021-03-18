@@ -5,12 +5,14 @@
 #ifndef FERN_DRIVER_H
 #define FERN_DRIVER_H
 
-#include <string>
-#include <cstddef>
-#include <istream>
+#include "AST.h"
 
 #include "Scanner.h"
 #include "Fern.tab.hh"
+
+#include <string>
+#include <cstddef>
+#include <istream>
 
 namespace Fern {
 
@@ -33,11 +35,16 @@ namespace Fern {
 
         void report_error(const std::string &msg) const;
 
+        void setASTRoot(Fern::ASTNode *root);
+
+        void printAST(int indent = 0, ASTNode *node = nullptr);
+
     private:
         void parse_helper(std::istream &stream);
 
         Fern::Parser *parser = nullptr;
         Fern::Scanner *scanner = nullptr;
+        Fern::ASTNode *root = nullptr;
     };
 
 }

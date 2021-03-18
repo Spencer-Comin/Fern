@@ -1,3 +1,4 @@
+/*
 // function
 # sum := (a, b) { # return; return = a + b; };
 # value = sum(1, 2);
@@ -55,3 +56,7 @@ skipping
 `tag_literal_test1;
 "unterminated string;
 "this is a good string";
+*/
+
+1 + 2 * 3 - g;
+a + b;

@@ -23,7 +23,7 @@ ADD_FLEX_BISON_DEPENDENCY(scanner parser)
 add_executable(Fern src/main.cpp
         src/parser/Driver.cpp
         ${FLEX_scanner_OUTPUTS}
-        ${BISON_parser_OUTPUTS} src/parser/Operator.h src/parser/Operator.cpp)
+        ${BISON_parser_OUTPUTS} src/parser/Operator.h src/parser/Operator.cpp src/parser/AST.cpp src/parser/AST.h)
 
 target_include_directories(Fern
         PRIVATE

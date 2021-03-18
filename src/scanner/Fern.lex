@@ -21,6 +21,8 @@ using token = Fern::Parser::token;
 #define ERROR(msg)  std::string s(msg); Fern::Parser::syntax_error exc(*loc, s); throw exc
 #define OP(op) yyval->build<Fern::Operator>(Fern::Operator::op); return token::op
 
+static int comment_nesting = 0;
+
 %}
 
 %option debug
@@ -51,9 +53,10 @@ bad_string  \"[^"\n]*
 {whitespace}    { /* ignore */ }
 {comment}       { /* ignore */ }
 
-<INITIAL>"/*"   { BEGIN(MULTILINE_COMMENT); }
+<INITIAL>"/*"   { BEGIN(MULTILINE_COMMENT); comment_nesting++; }
 
-<MULTILINE_COMMENT>"*/"     { BEGIN(INITIAL); }
+<MULTILINE_COMMENT>"/*"     { comment_nesting++; }
+<MULTILINE_COMMENT>"*/"     { comment_nesting--; if (comment_nesting == 0) BEGIN(INITIAL); }
 <MULTILINE_COMMENT><<EOF>>  { ERROR("EOF in multiline comment"); }
 <MULTILINE_COMMENT>.        { /* ignore */ }
 
