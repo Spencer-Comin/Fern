@@ -75,7 +75,6 @@
 %token <std::string>    NUMBER
 %token <std::string>    ID
 %token <std::string>    STRING
-%token <std::string>    TAG
 %token <std::string>    TAG_LITERAL
 
 %token  IF
@@ -92,8 +91,7 @@
 %token  L_SQUARE
 %token  R_SQUARE
 
-%token  EQUAL
-%token  WALRUS
+%token  HASH
 %token  COMMA
 %token  COLON
 %token  SEMICOLON
@@ -101,24 +99,42 @@
 %token  AT
 %token  BACKSLASH
 
+%token <Fern::Operator> EQUAL
+%token <Fern::Operator> WALRUS
+
 %type  <Fern::Operator> add_op
 %type  <Fern::Operator> mul_op
 %type  <Fern::Operator> logic_op
 %type  <Fern::Operator> comp_op
 %type  <Fern::Operator> bit_op
-
-%type  <Fern::Operator> binary_op
+%type  <Fern::Operator> unary_op
 
 %type  <Fern::ASTNode*> statement_list;
 %type  <Fern::ASTNode*> expression;
 %type  <Fern::ASTNode*> statement;
 %type  <Fern::ASTNode*> literal;
+%type  <Fern::ASTNode*> term;
+%type  <Fern::ASTNode*> unary_exp;
+%type  <Fern::ASTNode*> mul_exp;
+%type  <Fern::ASTNode*> add_exp;
+%type  <Fern::ASTNode*> comp_exp;
+%type  <Fern::ASTNode*> logic_exp;
+%type  <Fern::ASTNode*> statement_body;
+%type  <Fern::ASTNode*> copy_stmt;
+%type  <Fern::ASTNode*> bind_stmt;
+%type  <Fern::ASTNode*> initialisation_stmt;
+%type  <Fern::ASTNode*> id;
+%type  <Fern::ASTNode*> declaration_stmt;
 
-%left AND OR XOR
-%left DOUBLE_AND DOUBLE_OR
-%left TRIPLE_EQUAL DOUBLE_EQUAL BANG_EQUAL LT_EQUAL GT_EQUAL LT GT TILDE
-%left PLUS MINUS
-%left STAR SLASH MODULO
+%type  <std::vector<std::string>> id_concatenation;
+%type  <std::vector<std::string>> tag;
+
+
+// %left AND OR XOR
+// %left DOUBLE_AND DOUBLE_OR
+// %left TRIPLE_EQUAL DOUBLE_EQUAL BANG_EQUAL LT_EQUAL GT_EQUAL LT GT TILDE
+// %left PLUS MINUS
+// %left STAR SLASH MODULO
 
 %locations
 
@@ -147,17 +163,126 @@ statement_list:
         }
     ;
 
-statement: expression SEMICOLON;
+statement: statement_body SEMICOLON;
 
-expression:
-    expression binary_op expression
+statement_body: expression | copy_stmt | bind_stmt | declaration_stmt | initialisation_stmt;
+
+copy_stmt:
+    id EQUAL expression
         {
             $$ = new Fern::Binary($1, $3, $2);
         }
-    | ID
+    ;
+
+bind_stmt:
+    id WALRUS expression
+        {
+            $$ = new Fern::Binary($1, $3, $2);
+        }
+    ;
+
+expression:
+    logic_exp
+    ;
+
+id:
+    ID
         {
             $$ = new Fern::ID($1);
         }
+    ;
+
+id_concatenation:
+    id_concatenation COMMA ID
+        {
+            $$ = $1;
+            $$.push_back($3);
+        }
+    | ID
+        {
+            $$ = std::vector<std::string>();
+            $$.push_back($1);
+        }
+    | %empty
+        {
+            $$ = std::vector<std::string>();
+        }
+    ;
+
+tag:
+    HASH id_concatenation HASH
+        {
+            $$ = $2;
+        }
+    ;
+
+declaration_stmt:
+    tag id
+        {
+            $$ = $2;
+            $$->setTags($1);
+        }
+    ;
+
+initialisation_stmt:
+    tag copy_stmt
+        {
+            $$ = $2;
+            $$->setTags($1);
+        }
+    | tag bind_stmt
+        {
+            $$ = $2;
+            $$->setTags($1);
+        }
+    ;
+
+logic_exp:
+    logic_exp logic_op comp_exp
+        {
+            $$ = new Fern::Binary($1, $3, $2);
+        }
+    | comp_exp
+    ;
+
+comp_exp:
+    comp_exp comp_op add_exp
+        {
+            $$ = new Fern::Binary($1, $3, $2);
+        }
+    | add_exp
+    ;
+
+add_exp:
+    add_exp add_op mul_exp
+        {
+            $$ = new Fern::Binary($1, $3, $2);
+        }
+    | mul_exp
+    ;
+
+mul_exp:
+    mul_exp mul_op unary_exp
+        {
+            $$ = new Fern::Binary($1, $3, $2);
+        }
+    | unary_exp
+    ;
+
+unary_exp:
+    unary_op unary_exp
+        {
+            $$ = new Fern::Unary($2, $1);
+        }
+    | term
+    ;
+
+term:
+    L_PAREN expression R_PAREN
+        {
+            $$ = $2;
+        }
+    | id
     | literal
     ;
 
@@ -186,10 +311,10 @@ logic_op: DOUBLE_AND | DOUBLE_OR;
 
 bit_op: AND | OR | XOR;
 
-binary_op: add_op | mul_op | logic_op | comp_op | bit_op;
+unary_op: PLUS | MINUS | TILDE | BANG;
 
 %%
 
 void Fern::Parser::error(const location_type &l, const std::string &err_message) {
-    std::cerr << "Error: " << err_message << " at " << l << "\n";
+    std::cerr << "Error: " << err_message << " at line " << scanner.lineno() << "\n";
 }

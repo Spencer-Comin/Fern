@@ -16,9 +16,15 @@ namespace Fern {
     public:
         std::vector<ASTNode*> children;
         friend std::ostream& operator<<(std::ostream &os, ASTNode &node);
+        virtual ~ASTNode();
+
+        void addTag(std::string &tag);
+        void setTags(std::vector<std::string> &tags);
 
     protected:
         virtual std::string info();
+        //ASTNode *parent;
+        std::vector<std::string> tags = {};
     };
 
     class ASTBranch : public ASTNode {
@@ -29,10 +35,24 @@ namespace Fern {
 
     };
 
+    class Concatenation : public ASTBranch {
+    private:
+        std::string info() override;
+    };
+
     class Binary : public ASTBranch {
     public:
         Fern::Operator op;
         Binary(ASTNode* left, ASTNode* right, Fern::Operator op);
+    private:
+        std::string info() override;
+    };
+
+    class Unary : public ASTBranch {
+    public:
+        Fern::Operator op;
+        Unary(ASTNode* child, Fern::Operator op);
+
     private:
         std::string info() override;
     };

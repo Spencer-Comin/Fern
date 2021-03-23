@@ -52,6 +52,7 @@ void Fern::Driver::parse_helper(std::istream &stream) {
     const int accept(0);
     if (parser->parse() != accept) {
         std::cerr << "Parse failed!!!\n";
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -68,12 +69,10 @@ void Fern::Driver::setASTRoot(Fern::ASTNode *new_root) {
     root = new_root;
 }
 
-void Fern::Driver::printAST(int indent, Fern::ASTNode *node) {
-    if (node == nullptr) node = root;
-//    std::cout << std::string(indent, '\t');
-//    std::cout << *node << '\n';
-//    for (auto &child : node->children)
-//        printAST(indent + 1, child);
+void Fern::Driver::printAST() {
     std::cout << *root;
+}
 
+void Fern::Driver::killAST() {
+    delete root;
 }

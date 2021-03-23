@@ -59,4 +59,5 @@ skipping
 */
 
 1 + 2 * 3 - g;
-a + b;
+x = a + ~b;
+#this, is, a, list, of, tags# y = 0;

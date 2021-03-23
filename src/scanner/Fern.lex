@@ -35,7 +35,6 @@ static int comment_nesting = 0;
 number      [-+]?[0-9_]+
 id          [a-zA-Z][a-zA-Z0-9_]*
 string      \"[^"\n]*\"
-tag         "#"{id}?
 tag_lit     "`"{id}
 
 comment     "//"[^\n]*
@@ -77,13 +76,6 @@ bad_string  \"[^"\n]*
                 yyval->build<std::string>(val);
                 return token::STRING;
             }
-{tag}       {
-                std::string val(yytext);
-                // trim opening hash
-                val.erase(0, 1);
-                yyval->build<std::string>(val);
-                return token::TAG;
-            }
 {tag_lit}   {
                 std::string val(yytext);
                 // trim opening backtick
@@ -117,6 +109,9 @@ bad_string  \"[^"\n]*
 
 "!"         { OP(BANG); }
 
+":="        { OP(WALRUS); }
+"="         { OP(EQUAL); }
+
 "("         { return token::L_PAREN; }
 ")"         { return token::R_PAREN; }
 "{"         { return token::L_CURLY; }
@@ -124,8 +119,7 @@ bad_string  \"[^"\n]*
 "["         { return token::L_SQUARE; }
 "]"         { return token::R_SQUARE; }
 
-":="        { return token::WALRUS; }
-"="         { return token::EQUAL; }
+"#"         { return token::HASH; }
 ","         { return token::COMMA; }
 ":"         { return token::COLON; }
 ";"         { return token::SEMICOLON; }

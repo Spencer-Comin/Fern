@@ -12,6 +12,16 @@ Fern::Binary::Binary(Fern::ASTNode *left, Fern::ASTNode *right,
     this->op = op;
 }
 
+Fern::Unary::Unary(Fern::ASTNode *child, Fern::Operator op) {
+    children.resize(1);
+    children[0] = child;
+    this->op = op;
+}
+
+std::string Fern::Unary::info() {
+    return "Unary Expression, op: " + Fern::opToString(op);
+}
+
 std::string Fern::Binary::info() {
     return "Binary Expression, op: " + Fern::opToString(op);
 }
@@ -48,15 +58,39 @@ std::string Fern::ID::info() {
 
 std::ostream &Fern::operator<<(std::ostream &os, ASTNode &node) {
     static int indent = 0;
-    os << std::string(indent, '\t') << node.info() << '\n';
+    os << std::string(indent, '\t');
+    os << node.info() << '\n';
     indent++;
     for (auto const &child: node.children) {
         os << *child;
     }
+    for (auto const &tag: node.tags) {
+        os << std::string(indent, '\t') << "#TAG " << tag <<'\n';
+    }
     indent--;
+
     return os;
 }
 
 std::string Fern::ASTNode::info() {
-    return "Node";
+    return "Root";
+}
+
+Fern::ASTNode::~ASTNode() {
+    for (auto &child: children) {
+        delete child;
+    }
+}
+
+void Fern::ASTNode::addTag(std::string &tag) {
+    tags.push_back(tag);
+}
+
+void Fern::ASTNode::setTags(std::vector<std::string> &new_tags) {
+    tags = new_tags;
+}
+
+
+std::string Fern::Concatenation::info() {
+    return "Concatenation";
 }

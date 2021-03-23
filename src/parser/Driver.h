@@ -37,8 +37,9 @@ namespace Fern {
 
         void setASTRoot(Fern::ASTNode *root);
 
-        void printAST(int indent = 0, ASTNode *node = nullptr);
+        void printAST();
 
+        void killAST();
     private:
         void parse_helper(std::istream &stream);
 

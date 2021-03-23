@@ -44,6 +44,10 @@ namespace Fern {
                 return "DOUBLE_OR ||";
             case Operator::BANG:
                 return "BANG !";
+            case Operator::EQUAL:
+                return "EQUAL =";
+            case Operator::WALRUS:
+                return "WALRUS :=";
             default:
                 return "UNRECOGNIZED OPERATOR";
         }

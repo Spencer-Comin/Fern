@@ -18,6 +18,7 @@ int main(const int argc, const char **argv) {
             driver.parse(argv[1]);
         }
         driver.printAST();
+        driver.killAST();
     } else return EXIT_FAILURE;
     return EXIT_SUCCESS;
 }

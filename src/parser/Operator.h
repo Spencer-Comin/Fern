@@ -24,7 +24,10 @@ namespace Fern {
         LT, GT, LT_EQUAL, GT_EQUAL, TILDE,
 
         // logic operators
-        DOUBLE_AND, DOUBLE_OR, BANG
+        DOUBLE_AND, DOUBLE_OR, BANG,
+
+        // assignment operators
+        EQUAL, WALRUS
     };
 
     std::string opToString(Operator op);

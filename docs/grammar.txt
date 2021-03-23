@@ -49,13 +49,13 @@ _ LETTER -> "a"..."b" | "A"..."B"
 NUMBER -> DIGIT { "_" | DIGIT }
 ID -> LETTER { LETTER | NUMBER | "_" }
 STRING -> DOUBLE_QUOTE { . } DOUBLE_QUOTE | QUOTE { . } QUOTE
-TAG -> "#" [ ID ]
-TAG_LITERAL -> "`" ID
+HASH -> "#"
+tag_LITERAL -> "`" ID
 EOF -> **END OF FILE**
 
 Rules:
 
-literal -> STRING | NUMBER | TAG_LITERAL
+literal -> STRING | NUMBER | tag_LITERAL
 
 bit_op -> AND | OR | XOR
 add_op -> PLUS | MINUS
@@ -65,21 +65,22 @@ logic_op -> DOUBLE_AND | DOUBLE_OR
 binary_op -> bitwise_op | add_op | mul_op | relative_op | logic_op
 unary_op -> PLUS | MINUS | TILDE | BANG
 
-id_concatenation -> ID { COMMA ID }
+id_concatenation -> ID { COMMA ID } | ε
+tag -> HASH id_concatenation HASH
 
 statement_list -> { statement }
 basic_block -> L_CURLY statement_list R_CURLY
 conditional_block -> L_PAREN id_concatenation R_PAREN basic_block
 block -> basic_block | conditional_block | ID | literal
 
-declaration_stmt -> TAG ID
-initialisation_stmt -> TAG assignment_stmt | TAG binding_stmt
-assignment_stmt -> ID EQUAL expression
-binding_stmt -> ID WALRUS expression
-statement_body -> assignment_stmt | binding_stmt | expression | declaration_stmt | initialisation_stmt | block
+declaration_stmt -> tag ID
+initialisation_stmt -> tag copy_stmt | tag bind_stmt
+copy_stmt -> ID EQUAL expression
+bind_stmt -> ID WALRUS expression
+statement_body -> copy_stmt | bind_stmt | expression | declaration_stmt | initialisation_stmt | block
 statement -> statement_body SEMI
 
-concatenation_exp -> expression { COMMA expression }
+concatenation_exp -> expression { COMMA expression } | ε
 evaluation_exp -> block L_PAREN concatenation_exp R_PAREN block
 index_exp -> block L_SQUARE expression R_SQUARE | block DOT block
 decision_exp -> IF expression THEN expression [ ELSE expression ] | expression QUESTION expression [ COLON expression ]
@@ -88,11 +89,16 @@ visit_exp -> block OVER block | block BACKSLASH block | OVER block DO block
 slice_exp -> block L_SQUARE expression COLON expression R_SQUARE
 replace_exp -> block COLON expression AT expression
 
-binary_exp -> unary_exp [ binary_op unary_exp ]
 unary_exp -> [ unary_op ] term
-term -> ID | literal | L_PAREN expression R_PAREN
+term -> L_PAREN expression R_PAREN | block
 
-expression -> [ TAG ] expression | concatenation_exp | evaluation_exp | index_exp
-                | decision_exp | iteration_exp | slice_exp | replace_exp | binary_exp
+mul_exp -> unary_exp [ mul_op unary_exp ]
+add_exp -> mul_exp [ add_op mul_exp ]
+comp_exp -> add_exp [ comp_op add_exp ]
+logic_exp -> comp_exp [ logic_op comp_exp ]
+
+
+expression -> [ tag ] expression | concatenation_exp | evaluation_exp | index_exp
+                | decision_exp | iteration_exp | slice_exp | replace_exp | mul_exp
 
 program -> statement_list EOF
