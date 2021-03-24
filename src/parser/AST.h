@@ -9,22 +9,48 @@
 
 #include <ostream>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <set>
+
+using std::vector;
+using std::string;
+using std::ostream;
+using std::unordered_map;
+using std::unordered_set;
+using std::set;
 
 namespace Fern {
 
     class ASTNode {
     public:
-        std::vector<ASTNode*> children;
-        friend std::ostream& operator<<(std::ostream &os, ASTNode &node);
+        friend ostream &operator<<(ostream &os, ASTNode &node);
+
         virtual ~ASTNode();
 
-        void addTag(std::string &tag);
-        void setTags(std::vector<std::string> &tags);
+        void addTag(string &tag);
+
+        void setTags(set<string> &tags);
+        void setConditions(set<string> &conditions);
+
+        void addChild(ASTNode *child);
+        void addEvaluationList(ASTNode *evaluationList);
+
+
+        friend class Block;
+
+        bool parenthesized = false;
 
     protected:
-        virtual std::string info();
+        virtual string info();
+        unordered_set<int> conditionIndices;
+        set<string> conditions = {};
+        int evaluationIndex = -1;
+
         //ASTNode *parent;
-        std::vector<std::string> tags = {};
+        set<string> tags = {};
+
+        vector<ASTNode *> children;
     };
 
     class ASTBranch : public ASTNode {
@@ -37,55 +63,73 @@ namespace Fern {
 
     class Concatenation : public ASTBranch {
     private:
-        std::string info() override;
+        string info() override;
+    };
+
+    class Block : public ASTBranch {
+    public:
+        explicit Block(ASTNode *list);
+
+    private:
+        string info() override;
+
+        unordered_map<string, ASTNode *> symbolTable;
     };
 
     class Binary : public ASTBranch {
     public:
         Fern::Operator op;
-        Binary(ASTNode* left, ASTNode* right, Fern::Operator op);
+
+        Binary(ASTNode *left, ASTNode *right, Fern::Operator op);
+
     private:
-        std::string info() override;
+        string info() override;
     };
 
     class Unary : public ASTBranch {
     public:
         Fern::Operator op;
-        Unary(ASTNode* child, Fern::Operator op);
+
+        Unary(ASTNode *child, Fern::Operator op);
 
     private:
-        std::string info() override;
+        string info() override;
     };
 
     class Literal : public ASTLeaf {
     public:
-        std::string value;
+        string value;
         enum Type {
             STRING,
             NUMBER,
             TAG_LITERAL
         } type;
-        Literal(std::string &value, Type type);
+
+        Literal(string &value, Type type);
+
     private:
-        std::string info() override;
+        string info() override;
     };
 
     class ID : public ASTLeaf {
     public:
-        std::string name;
-        explicit ID(std::string &name);
+        string name;
+
+        explicit ID(const string &name);
+
     private:
-        std::string info() override;
+        string info() override;
     };
 
 
     template<class T>
-    class Lazy : public T {};
+    class Lazy : public T {
+    };
 
     template<class T>
-    class Eager : public T {};
+    class Eager : public T {
+    };
 }
-
 
 
 #endif //FERN_AST_H

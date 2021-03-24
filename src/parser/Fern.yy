@@ -1,9 +1,10 @@
 %skeleton "lalr1.cc"
 %require "3.0"
-%debug
+%verbose
 %defines
 %define api.namespace {Fern}
 %define api.parser.class {Parser}
+%define parse.trace {true}
 
 %code requires{
     namespace Fern {
@@ -40,7 +41,8 @@
 
     #undef yylex
     #define yylex scanner.yylex
-   
+
+    template<typename Base, typename T> inline bool isinstance(const T *ptr);
 }
 
 %define api.value.type variant
@@ -111,23 +113,27 @@
 
 %type  <Fern::ASTNode*> statement_list;
 %type  <Fern::ASTNode*> expression;
+%type  <Fern::ASTNode*> expression_body;
 %type  <Fern::ASTNode*> statement;
 %type  <Fern::ASTNode*> literal;
 %type  <Fern::ASTNode*> term;
 %type  <Fern::ASTNode*> unary_exp;
 %type  <Fern::ASTNode*> mul_exp;
 %type  <Fern::ASTNode*> add_exp;
+%type  <Fern::ASTNode*> bit_exp;
 %type  <Fern::ASTNode*> comp_exp;
 %type  <Fern::ASTNode*> logic_exp;
+%type  <Fern::ASTNode*> concatenation_exp;
 %type  <Fern::ASTNode*> statement_body;
-%type  <Fern::ASTNode*> copy_stmt;
-%type  <Fern::ASTNode*> bind_stmt;
-%type  <Fern::ASTNode*> initialisation_stmt;
+%type  <Fern::ASTNode*> copy_exp;
+%type  <Fern::ASTNode*> bind_exp;
 %type  <Fern::ASTNode*> id;
-%type  <Fern::ASTNode*> declaration_stmt;
+%type  <Fern::ASTNode*> block;
+%type  <Fern::ASTNode*> basic_block;
+%type  <Fern::ASTNode*> conditional_block;
 
-%type  <std::vector<std::string>> id_concatenation;
-%type  <std::vector<std::string>> tag;
+%type  <std::set<std::string>> tag_list;
+%type  <std::set<std::string>> tag;
 
 
 // %left AND OR XOR
@@ -136,11 +142,17 @@
 // %left PLUS MINUS
 // %left STAR SLASH MODULO
 
+%left EQUAL WALRUS
+%right COMMA
+%precedence L_PAREN R_PAREN
+
+
 %locations
 
 %{
     extern int yylineno;
 %}
+
 
 %%
 
@@ -155,7 +167,7 @@ statement_list:
     statement_list statement
         {
             $$ = $1;
-            $$->children.push_back($2);
+            $$->addChild($2);
         }
     | %empty
         {
@@ -165,24 +177,44 @@ statement_list:
 
 statement: statement_body SEMICOLON;
 
-statement_body: expression | copy_stmt | bind_stmt | declaration_stmt | initialisation_stmt;
+statement_body: expression | copy_exp | bind_exp;
 
-copy_stmt:
+copy_exp:
     id EQUAL expression
         {
             $$ = new Fern::Binary($1, $3, $2);
         }
+    | tag id EQUAL expression
+        {
+            $$ = new Fern::Binary($2, $4, $3);
+            $$->setTags($1);
+        }
     ;
 
-bind_stmt:
+bind_exp:
     id WALRUS expression
         {
             $$ = new Fern::Binary($1, $3, $2);
         }
+    | tag id WALRUS expression
+        {
+            $$ = new Fern::Binary($2, $4, $3);
+            $$->setTags($1);
+        }
+    ;
+
+expression_body:
+    logic_exp
     ;
 
 expression:
-    logic_exp
+    expression_body
+    | concatenation_exp
+    | tag expression_body
+        {
+            $$ = $2;
+            $$->setTags($1);
+        }
     ;
 
 id:
@@ -192,48 +224,73 @@ id:
         }
     ;
 
-id_concatenation:
-    id_concatenation COMMA ID
+basic_block:
+    L_CURLY statement_list R_CURLY
+        {
+            $$ = new Block($2);
+        }
+    ;
+
+term:
+    L_PAREN expression R_PAREN
+        {
+            $$ = $2;
+            $$->parenthesized = true;
+        }
+    | block
+    ;
+
+conditional_block:
+    L_SQUARE tag_list R_SQUARE basic_block
+        {
+            $$ = $4;
+            $$->setConditions($2);
+        }
+    ;
+
+block:
+    basic_block
+    | conditional_block
+    | id
+    | literal
+    ;
+
+tag_list:
+    tag_list COMMA ID
         {
             $$ = $1;
-            $$.push_back($3);
+            $$.insert($3);
         }
     | ID
         {
-            $$ = std::vector<std::string>();
-            $$.push_back($1);
-        }
-    | %empty
-        {
-            $$ = std::vector<std::string>();
+            $$ = std::set<std::string>();
+            $$.insert($1);
         }
     ;
+
+concatenation_exp:
+    expression COMMA expression
+        {
+            if (isinstance<Concatenation>($1) && !$1->parenthesized) {
+                $$ = $1;
+                $$->addChild($3);
+            } else {
+                $$ = new Concatenation();
+                $$->addChild($1);
+                $$->addChild($3);
+            }
+        }
+    ;
+
 
 tag:
-    HASH id_concatenation HASH
+    HASH tag_list HASH
         {
             $$ = $2;
         }
-    ;
-
-declaration_stmt:
-    tag id
+    | HASH HASH
         {
-            $$ = $2;
-            $$->setTags($1);
-        }
-    ;
-
-initialisation_stmt:
-    tag copy_stmt
-        {
-            $$ = $2;
-            $$->setTags($1);
-        }
-    | tag bind_stmt
-        {
-            $$ = $2;
-            $$->setTags($1);
+            $$ = std::set<std::string>();
         }
     ;
 
@@ -246,7 +303,15 @@ logic_exp:
     ;
 
 comp_exp:
-    comp_exp comp_op add_exp
+    comp_exp comp_op bit_exp
+        {
+            $$ = new Fern::Binary($1, $3, $2);
+        }
+    | bit_exp
+    ;
+
+bit_exp:
+    bit_exp bit_op add_exp
         {
             $$ = new Fern::Binary($1, $3, $2);
         }
@@ -277,14 +342,6 @@ unary_exp:
     | term
     ;
 
-term:
-    L_PAREN expression R_PAREN
-        {
-            $$ = $2;
-        }
-    | id
-    | literal
-    ;
 
 literal:
     STRING
@@ -317,4 +374,10 @@ unary_op: PLUS | MINUS | TILDE | BANG;
 
 void Fern::Parser::error(const location_type &l, const std::string &err_message) {
     std::cerr << "Error: " << err_message << " at line " << scanner.lineno() << "\n";
+}
+
+template<typename Base, typename T>
+inline bool isinstance(const T *ptr) {
+    // https://stackoverflow.com/a/25231384
+    return dynamic_cast<const Base*>(ptr) != nullptr;
 }

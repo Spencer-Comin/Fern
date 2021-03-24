@@ -10,7 +10,7 @@
 
 using token = Fern::Parser::token;
 
-#define yyterminate() return(token::END)
+#define yyterminate() return token::END
 
 #define YY_NO_UNISTD_H
 
@@ -132,7 +132,6 @@ bad_string  \"[^"\n]*
 <*>\n       { loc->lines(); }
 
 {bad_string} { ERROR("no closing \" in string"); }
-.           { ERROR(yytext); }
-<<EOF>>     { return token::END; }
+.            { ERROR(yytext); }
 
 %%

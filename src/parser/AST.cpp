@@ -18,21 +18,21 @@ Fern::Unary::Unary(Fern::ASTNode *child, Fern::Operator op) {
     this->op = op;
 }
 
-std::string Fern::Unary::info() {
+string Fern::Unary::info() {
     return "Unary Expression, op: " + Fern::opToString(op);
 }
 
-std::string Fern::Binary::info() {
+string Fern::Binary::info() {
     return "Binary Expression, op: " + Fern::opToString(op);
 }
 
-Fern::Literal::Literal(std::string &value, Fern::Literal::Type type) {
+Fern::Literal::Literal(string &value, Fern::Literal::Type type) {
     this->value = value;
     this->type = type;
 }
 
-std::string Fern::Literal::info() {
-    std::string typeName{};
+string Fern::Literal::info() {
+    string typeName{};
     switch (type) {
         case NUMBER:
             typeName = "Number";
@@ -47,32 +47,35 @@ std::string Fern::Literal::info() {
     return typeName + " literal: " + value;
 }
 
-Fern::ID::ID(std::string &name) {
+Fern::ID::ID(const string &name) {
     this->name = name;
 }
 
-std::string Fern::ID::info() {
+string Fern::ID::info() {
     return "Identifier: " + name;
 }
 
 
-std::ostream &Fern::operator<<(std::ostream &os, ASTNode &node) {
+ostream &Fern::operator<<(ostream &os, ASTNode &node) {
     static int indent = 0;
-    os << std::string(indent, '\t');
+    os << string(indent, '\t');
     os << node.info() << '\n';
     indent++;
+    for (auto const &tag: node.tags) {
+        os << string(indent, '\t') << "TAG: " << tag << '\n';
+    }
+    for (auto const &condition: node.conditions) {
+        os << string(indent, '\t') << "CONDITION: " << condition << '\n';
+    }
     for (auto const &child: node.children) {
         os << *child;
-    }
-    for (auto const &tag: node.tags) {
-        os << std::string(indent, '\t') << "#TAG " << tag <<'\n';
     }
     indent--;
 
     return os;
 }
 
-std::string Fern::ASTNode::info() {
+string Fern::ASTNode::info() {
     return "Root";
 }
 
@@ -82,15 +85,38 @@ Fern::ASTNode::~ASTNode() {
     }
 }
 
-void Fern::ASTNode::addTag(std::string &tag) {
-    tags.push_back(tag);
+void Fern::ASTNode::addTag(string &tag) {
+    tags.insert(tag);
 }
 
-void Fern::ASTNode::setTags(std::vector<std::string> &new_tags) {
+void Fern::ASTNode::setTags(set<string> &new_tags) {
     tags = new_tags;
 }
 
+void Fern::ASTNode::addChild(Fern::ASTNode *child) {
+    children.push_back(child);
+}
 
-std::string Fern::Concatenation::info() {
+void Fern::ASTNode::setConditions(set<string> &new_conditions) {
+    conditions = new_conditions;
+}
+
+void Fern::ASTNode::addEvaluationList(Fern::ASTNode *evaluationList) {
+    evaluationIndex = children.size();
+    addChild(evaluationList);
+}
+
+
+string Fern::Concatenation::info() {
     return "Concatenation";
+}
+
+string Fern::Block::info() {
+    return "Block";
+}
+
+Fern::Block::Block(Fern::ASTNode *list) {
+    children = list->children;
+    tags = list->tags;
+    //delete list;
 }

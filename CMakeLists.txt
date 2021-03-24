@@ -12,7 +12,9 @@ find_package(FLEX REQUIRED)
 
 BISON_TARGET(parser
         src/parser/Fern.yy
-        ${CMAKE_CURRENT_BINARY_DIR}/Fern.tab.cc)
+        ${CMAKE_CURRENT_BINARY_DIR}/Fern.tab.cc
+        COMPILE_FLAGS -Wcounterexamples
+        VERBOSE)
 
 FLEX_TARGET(scanner
         src/scanner/Fern.lex

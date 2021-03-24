@@ -8,6 +8,7 @@ bind                a := b                  the value of 'a' is bound to the val
 dependency          a ~ b                   does the value of 'a' depend on 'b'
 equal structure     a === b                 evaluates to true if the dependency tree of 'a' is identical to that of 'b'
 concatenation       a, b                    evaluates to a value with a bit-width equal to the width of 'a' plus the width of 'b'
+                                            NOTE: concatenation expressions cannot be tagged
 evaluation          a(b)                    evaluation of 'a' given condition 'b' (always pass 'b' by reference)
 index               a[b]                    returns the dependency of 'a' in slot 'b'
 index               a.b                     equivalent to 'a[b]'
@@ -37,14 +38,14 @@ return      this is the node presented by a block to its external environment
 
 
 TAGS:
-#meta       tag indicating the following expression is to be executed at compile time, then excluded from the dependency tree before program execution
-#ID         tag placed on the following block that can make indications to meta expressions and the compiler/interpreter
-#eager      any nodes marked eager will automatically update their value when any of their dependency nodes change
-#lazy       nodes marked lazy will not update their value until evaluated
+#ID#        tag placed on the following block that can make indications to meta expressions and the compiler/interpreter
+#meta#      tag indicating the following expression is to be executed at compile time, then excluded from the dependency tree before program execution
+#eager#     any nodes marked eager will automatically update their value when any of their dependency nodes changes
+#lazy#      nodes marked lazy will not update their value until evaluated
             all dependencies of eager nodes must also be eager
             dependencies of lazy nodes may be eager or lazy
             nodes default to lazy if not marked otherwise
-#static     an expression marked static will only be run once
+#static#    an expression marked static will only be run once
 
 
 NOTES:

@@ -81,7 +81,7 @@ statement_body -> copy_stmt | bind_stmt | expression | declaration_stmt | initia
 statement -> statement_body SEMI
 
 concatenation_exp -> expression { COMMA expression } | ε
-evaluation_exp -> block L_PAREN concatenation_exp R_PAREN block
+evaluation_exp -> block L_PAREN concatenation_exp R_PAREN
 index_exp -> block L_SQUARE expression R_SQUARE | block DOT block
 decision_exp -> IF expression THEN expression [ ELSE expression ] | expression QUESTION expression [ COLON expression ]
 iteration_exp -> WHILE expression DO expression

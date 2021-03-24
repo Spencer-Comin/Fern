@@ -22,10 +22,10 @@ x = increment(7); // x now takes a value of 8
 x = increment(-8); // x now takes a value of 0
 
 // eager vs. lazy variables
-#eager x = 0;
-#eager y = 0;
-#eager eager_sum;
-#lazy lazy_sum;
+#eager# x = 0;
+#eager# y = 0;
+#eager# eager_sum;
+#lazy# lazy_sum;
 eager_sum := x + y;
 lazy_sum := x + y;
 x = 7;
@@ -58,6 +58,19 @@ skipping
 "this is a good string";
 */
 
-1 + 2 * 3 - g;
-x = a + ~b;
-#this, is, a, list, of, tags# y = 0;
+
+
+{
+    1 + 2 * 3 - g;
+    x = a + ~b;
+    #this, is, a, list, of, tags# y = #some_tag_on_a_number_idk_why_you_would_do_this_but_you_can# 0;
+    #singletag# x;
+    ## y; // no tag
+    a, b, #tag# c, d;
+} + { a; };
+
+
+[a]{
+    1 + 2;
+    a = (1, 2, #three# 3), (3, 4 + 5);
+};
