@@ -27,7 +27,10 @@ namespace Fern {
         DOUBLE_AND, DOUBLE_OR, BANG,
 
         // assignment operators
-        EQUAL, WALRUS
+        EQUAL, WALRUS,
+
+        // access operator
+        DOT
     };
 
     std::string opToString(Operator op);

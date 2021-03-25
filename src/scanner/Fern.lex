@@ -111,6 +111,7 @@ bad_string  \"[^"\n]*
 
 ":="        { OP(WALRUS); }
 "="         { OP(EQUAL); }
+"."         { OP(DOT); }
 
 "("         { return token::L_PAREN; }
 ")"         { return token::R_PAREN; }

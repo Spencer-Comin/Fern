@@ -101,6 +101,7 @@
 %token  AT
 %token  BACKSLASH
 
+%token <Fern::Operator> DOT
 %token <Fern::Operator> EQUAL
 %token <Fern::Operator> WALRUS
 
@@ -110,6 +111,7 @@
 %type  <Fern::Operator> comp_op
 %type  <Fern::Operator> bit_op
 %type  <Fern::Operator> unary_op
+%type  <Fern::Operator> assign_op
 
 %type  <Fern::ASTNode*> statement_list;
 %type  <Fern::ASTNode*> expression;
@@ -123,10 +125,12 @@
 %type  <Fern::ASTNode*> bit_exp;
 %type  <Fern::ASTNode*> comp_exp;
 %type  <Fern::ASTNode*> logic_exp;
+%type  <Fern::ASTNode*> index_exp;
 %type  <Fern::ASTNode*> concatenation_exp;
+%type  <Fern::ASTNode*> evaluation_exp;
 %type  <Fern::ASTNode*> statement_body;
-%type  <Fern::ASTNode*> copy_exp;
-%type  <Fern::ASTNode*> bind_exp;
+%type  <Fern::ASTNode*> assign_stmt;
+%type  <Fern::ASTNode*> assign_target;
 %type  <Fern::ASTNode*> id;
 %type  <Fern::ASTNode*> block;
 %type  <Fern::ASTNode*> basic_block;
@@ -143,9 +147,8 @@
 // %left STAR SLASH MODULO
 
 %left EQUAL WALRUS
-%right COMMA
-%precedence L_PAREN R_PAREN
-
+%left DOT L_SQUARE
+%left COMMA
 
 %locations
 
@@ -177,34 +180,28 @@ statement_list:
 
 statement: statement_body SEMICOLON;
 
-statement_body: expression | copy_exp | bind_exp;
+statement_body: expression | assign_stmt;
 
-copy_exp:
-    id EQUAL expression
+assign_stmt:
+    assign_target assign_op expression
         {
             $$ = new Fern::Binary($1, $3, $2);
         }
-    | tag id EQUAL expression
+    | tag assign_target assign_op expression
         {
             $$ = new Fern::Binary($2, $4, $3);
             $$->setTags($1);
         }
     ;
 
-bind_exp:
-    id WALRUS expression
-        {
-            $$ = new Fern::Binary($1, $3, $2);
-        }
-    | tag id WALRUS expression
-        {
-            $$ = new Fern::Binary($2, $4, $3);
-            $$->setTags($1);
-        }
-    ;
+assign_target: id | index_exp;
+
+assign_op: EQUAL | WALRUS;
 
 expression_body:
     logic_exp
+    | evaluation_exp
+    | index_exp
     ;
 
 expression:
@@ -214,6 +211,17 @@ expression:
         {
             $$ = $2;
             $$->setTags($1);
+        }
+    ;
+
+index_exp:
+    block L_SQUARE expression R_SQUARE
+        {
+            $$ = new Fern::Binary($1, $3, Fern::Operator::DOT);
+        }
+    | block DOT block
+        {
+            $$ = new Fern::Binary($1, $3, $2);
         }
     ;
 
@@ -253,6 +261,7 @@ block:
     | conditional_block
     | id
     | literal
+    | index_exp
     ;
 
 tag_list:
@@ -265,6 +274,24 @@ tag_list:
         {
             $$ = std::set<std::string>();
             $$.insert($1);
+        }
+    ;
+
+evaluation_exp:
+    block L_PAREN concatenation_exp R_PAREN
+        {
+            $$ = $1;
+            $$->addEvaluationList($3);
+        }
+    | block L_PAREN id R_PAREN
+        {
+            $$ = $1;
+            $$->addEvaluationList($3);
+        }
+    | block L_PAREN R_PAREN
+        {
+            $$ = $1;
+            $$->addEvaluationList(nullptr);
         }
     ;
 

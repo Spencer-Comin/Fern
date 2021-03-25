@@ -19,11 +19,11 @@ Fern::Unary::Unary(Fern::ASTNode *child, Fern::Operator op) {
 }
 
 string Fern::Unary::info() {
-    return "Unary Expression, op: " + Fern::opToString(op);
+    return "Unary op: " + Fern::opToString(op);
 }
 
 string Fern::Binary::info() {
-    return "Binary Expression, op: " + Fern::opToString(op);
+    return "Binary op: " + Fern::opToString(op);
 }
 
 Fern::Literal::Literal(string &value, Fern::Literal::Type type) {
@@ -59,7 +59,7 @@ string Fern::ID::info() {
 ostream &Fern::operator<<(ostream &os, ASTNode &node) {
     static int indent = 0;
     os << string(indent, '\t');
-    os << node.info() << '\n';
+    os << (node.isEvaluation ? "Evaluated " : "") << node.info() << '\n';
     indent++;
     for (auto const &tag: node.tags) {
         os << string(indent, '\t') << "TAG: " << tag << '\n';
@@ -102,8 +102,11 @@ void Fern::ASTNode::setConditions(set<string> &new_conditions) {
 }
 
 void Fern::ASTNode::addEvaluationList(Fern::ASTNode *evaluationList) {
-    evaluationIndex = children.size();
-    addChild(evaluationList);
+    if (evaluationList != nullptr) {
+        evaluationIndex = children.size();
+        addChild(evaluationList);
+    }
+    isEvaluation = true;
 }
 
 

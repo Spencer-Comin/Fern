@@ -40,16 +40,15 @@ namespace Fern {
         friend class Block;
 
         bool parenthesized = false;
+        bool isEvaluation = false;
 
     protected:
         virtual string info();
-        unordered_set<int> conditionIndices;
         set<string> conditions = {};
         int evaluationIndex = -1;
 
-        //ASTNode *parent;
+        ASTNode *parent = nullptr;
         set<string> tags = {};
-
         vector<ASTNode *> children;
     };
 

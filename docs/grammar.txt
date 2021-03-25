@@ -70,14 +70,13 @@ tag -> HASH id_concatenation HASH
 
 statement_list -> { statement }
 basic_block -> L_CURLY statement_list R_CURLY
-conditional_block -> L_PAREN id_concatenation R_PAREN basic_block
+conditional_block -> L_SQUARE id_concatenation R_SQUARE basic_block
 block -> basic_block | conditional_block | ID | literal
 
-declaration_stmt -> tag ID
-initialisation_stmt -> tag copy_stmt | tag bind_stmt
-copy_stmt -> ID EQUAL expression
-bind_stmt -> ID WALRUS expression
-statement_body -> copy_stmt | bind_stmt | expression | declaration_stmt | initialisation_stmt | block
+assign_stmt -> [tag] assign_target assign_op expression
+assign_op -> EQUAL | WALRUS
+assign_target -> ID | index_exp
+statement_body -> copy_stmt | assign_stmt | block
 statement -> statement_body SEMI
 
 concatenation_exp -> expression { COMMA expression } | ε

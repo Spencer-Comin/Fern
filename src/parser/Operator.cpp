@@ -48,6 +48,8 @@ namespace Fern {
                 return "EQUAL =";
             case Operator::WALRUS:
                 return "WALRUS :=";
+            case Operator::DOT:
+                return "DOT .";
             default:
                 return "UNRECOGNIZED OPERATOR";
         }
