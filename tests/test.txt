@@ -1,4 +1,5 @@
-if a then b else c;
-a ? b : c;
-a ? b;
-if a then (if b then c) else d;
+while a do b;
+while while a do b do c;
+a over b;
+a \ b;
+a[b?c:d:e];

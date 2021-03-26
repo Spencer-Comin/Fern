@@ -26,7 +26,6 @@ visit               a \ b                   same as 'a over b'
 decision            if a then b else c      evaluates to 'b' if 'a' is truthy else to 'b'
 decision            a ? b : c               same as 'if a then b else c'
 slice               a[b:c]                  returns the concatenation of dependencies of 'a' in slots 'b' up to but not including 'c'
-replace             a: b @ c                replace all occurrences of 'c' in the dependency tree of 'a' with 'b', evaluates to new dependency tree
 
 
 SPECIAL SYMBOLS:

@@ -129,6 +129,9 @@
 %type  <Fern::ASTNode*> concatenation_exp;
 %type  <Fern::ASTNode*> evaluation_exp;
 %type  <Fern::ASTNode*> decision_exp;
+%type  <Fern::ASTNode*> iteration_exp;
+%type  <Fern::ASTNode*> visit_exp;
+%type  <Fern::ASTNode*> slice_exp;
 %type  <Fern::ASTNode*> statement_body;
 %type  <Fern::ASTNode*> assign_stmt;
 %type  <Fern::ASTNode*> assign_target;
@@ -150,8 +153,8 @@
 %left EQUAL WALRUS
 %left DOT L_SQUARE
 %left COMMA
-%nonassoc THEN QUESTION
-%left ELSE COLON
+%left THEN QUESTION WHILE
+%left ELSE COLON DO
 
 
 %locations
@@ -207,6 +210,9 @@ expression_body:
     | evaluation_exp
     | index_exp
     | decision_exp
+    | iteration_exp
+    | visit_exp
+    | slice_exp
     ;
 
 expression:
@@ -216,6 +222,31 @@ expression:
         {
             $$ = $2;
             $$->setTags($1);
+        }
+    ;
+
+iteration_exp:
+    WHILE expression DO expression
+        {
+            $$ = new Fern::Binary($2, $4, Fern::Operator::ITERATION);
+        }
+    ;
+
+visit_exp:
+    block OVER block
+        {
+            $$ = new Fern::Binary($1, $3, Fern::Operator::VISIT);
+        }
+    | block BACKSLASH block
+        {
+            $$ = new Fern::Binary($1, $3, Fern::Operator::VISIT);
+        }
+    ;
+
+slice_exp:
+    block L_SQUARE expression COLON expression R_SQUARE
+        {
+            $$ = new Fern::Ternary($1, $3, $5, Fern::Ternary::TernaryType::SLICE);
         }
     ;
 

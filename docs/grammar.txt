@@ -86,7 +86,6 @@ decision_exp -> IF expression THEN expression [ ELSE expression ] | expression Q
 iteration_exp -> WHILE expression DO expression
 visit_exp -> block OVER block | block BACKSLASH block
 slice_exp -> block L_SQUARE expression COLON expression R_SQUARE
-replace_exp -> block COLON expression AT expression
 
 unary_exp -> [ unary_op ] term
 term -> L_PAREN expression R_PAREN | block
