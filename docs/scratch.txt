@@ -14,14 +14,12 @@ index               a[b]                    returns the dependency of 'a' in slo
 index               a.b                     equivalent to 'a[b]'
 decision            if a then b             equivalent to 'if a then b else null'
 decision            a ? b                   equivalent to 'if a then b'
-iteration           while a do b            evaluates 'a', then if 'a' has evaluated to a truthy value, evaluates 'b' and repeats
-                                            else return 'b'
-visit               a over b                evaluate 'a' given x for every symbol x in the dependency tree of 'b', return last evaluation
+iteration           while a do b            evaluates 'a', then if 'a' has evaluated to a truthy value, evaluates 'b' and repeats, else return 'b'
+visit               a over b                evaluate 'a' given x for every child x in the dependency tree of 'b', return last evaluation
 visit               a \ b                   same as 'a over b'
-visit               over b do a             same as 'a over b'
 
 +, -, *, /, %, &&, ||, ==, !=, <, > <=, >= &, |, ^, all same as C
-+=, -=, *=, /=, %=, &&=, ||=, &=, |=, ^= will be implemented later
++=, -=, *=, /=, %=, &&=, ||=, &=, |=, ^=, will be implemented later
 &&, || both short circuit (don't evaluate RHS if not needed)
 
 --ternary--

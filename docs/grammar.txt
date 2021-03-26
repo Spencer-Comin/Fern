@@ -84,7 +84,7 @@ evaluation_exp -> block L_PAREN concatenation_exp R_PAREN
 index_exp -> block L_SQUARE expression R_SQUARE | block DOT block
 decision_exp -> IF expression THEN expression [ ELSE expression ] | expression QUESTION expression [ COLON expression ]
 iteration_exp -> WHILE expression DO expression
-visit_exp -> block OVER block | block BACKSLASH block | OVER block DO block
+visit_exp -> block OVER block | block BACKSLASH block
 slice_exp -> block L_SQUARE expression COLON expression R_SQUARE
 replace_exp -> block COLON expression AT expression
 

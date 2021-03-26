@@ -68,6 +68,10 @@ ostream &Fern::operator<<(ostream &os, ASTNode &node) {
         os << string(indent, '\t') << "CONDITION: " << condition << '\n';
     }
     for (auto const &child: node.children) {
+        if (child == nullptr) {
+            os << string(indent, '\t') << "EMPTY CHILD!!!\n";
+            return os;
+        }
         os << *child;
     }
     indent--;
@@ -122,4 +126,29 @@ Fern::Block::Block(Fern::ASTNode *list) {
     children = list->children;
     tags = list->tags;
     //delete list;
+}
+
+Fern::Ternary::Ternary(Fern::ASTNode *left, Fern::ASTNode *center, Fern::ASTNode *right,
+                       Fern::Ternary::TernaryType type) {
+    children.resize(3);
+    children[0] = left;
+    children[1] = center;
+    children[2] = right;
+    this->type = type;
+}
+
+string Fern::Ternary::info() {
+    string typeName{};
+    switch (type) {
+        case DECISION:
+            typeName = "DECISION";
+            break;
+        case SLICE:
+            typeName = "SLICE";
+            break;
+        case REPLACE:
+            typeName = "REPLACE";
+            break;
+    }
+    return "Ternary op: " + typeName;
 }

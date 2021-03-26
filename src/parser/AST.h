@@ -85,6 +85,20 @@ namespace Fern {
         string info() override;
     };
 
+    class Ternary : public ASTBranch {
+    public:
+        enum TernaryType {
+            DECISION,
+            SLICE,
+            REPLACE
+        } type;
+
+        Ternary(ASTNode* left, ASTNode* center, ASTNode* right, TernaryType type);
+
+    private:
+        string info() override;
+    };
+
     class Unary : public ASTBranch {
     public:
         Fern::Operator op;

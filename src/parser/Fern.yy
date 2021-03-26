@@ -128,6 +128,7 @@
 %type  <Fern::ASTNode*> index_exp;
 %type  <Fern::ASTNode*> concatenation_exp;
 %type  <Fern::ASTNode*> evaluation_exp;
+%type  <Fern::ASTNode*> decision_exp;
 %type  <Fern::ASTNode*> statement_body;
 %type  <Fern::ASTNode*> assign_stmt;
 %type  <Fern::ASTNode*> assign_target;
@@ -149,6 +150,9 @@
 %left EQUAL WALRUS
 %left DOT L_SQUARE
 %left COMMA
+%nonassoc THEN QUESTION
+%left ELSE COLON
+
 
 %locations
 
@@ -202,6 +206,7 @@ expression_body:
     logic_exp
     | evaluation_exp
     | index_exp
+    | decision_exp
     ;
 
 expression:
@@ -211,6 +216,25 @@ expression:
         {
             $$ = $2;
             $$->setTags($1);
+        }
+    ;
+
+decision_exp:
+    IF expression THEN expression
+        {
+            $$ = new Fern::Binary($2, $4, Fern::Operator::DECISION);
+        }
+    | IF expression THEN expression ELSE expression
+        {
+            $$ = new Fern::Ternary($2, $4, $6, Fern::Ternary::TernaryType::DECISION);
+        }
+    | expression QUESTION expression
+        {
+            $$ = new Fern::Binary($1, $3, Fern::Operator::DECISION);
+        }
+    | expression QUESTION expression COLON expression
+        {
+            $$ = new Fern::Ternary($1, $3, $5, Fern::Ternary::TernaryType::DECISION);
         }
     ;
 

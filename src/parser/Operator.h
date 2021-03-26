@@ -26,11 +26,8 @@ namespace Fern {
         // logic operators
         DOUBLE_AND, DOUBLE_OR, BANG,
 
-        // assignment operators
-        EQUAL, WALRUS,
-
-        // access operator
-        DOT
+        // utility operators
+        EQUAL, WALRUS, DOT, DECISION, ITERATION, VISIT
     };
 
     std::string opToString(Operator op);

@@ -50,6 +50,12 @@ namespace Fern {
                 return "WALRUS :=";
             case Operator::DOT:
                 return "DOT .";
+            case Operator::DECISION:
+                return "DECISION";
+            case Operator::ITERATION:
+                return "ITERATION";
+            case Operator::VISIT:
+                return "VISIT";
             default:
                 return "UNRECOGNIZED OPERATOR";
         }
