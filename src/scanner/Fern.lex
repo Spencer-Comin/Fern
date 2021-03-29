@@ -125,7 +125,6 @@ bad_string  \"[^"\n]*
 ":"         { return token::COLON; }
 ";"         { return token::SEMICOLON; }
 "?"         { return token::QUESTION; }
-"@"         { return token::AT; }
 "\\"        { return token::BACKSLASH; }
 
 

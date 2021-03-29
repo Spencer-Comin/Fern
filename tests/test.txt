@@ -1,5 +1,8 @@
-while a do b;
-while while a do b do c;
-a over b;
-a \ b;
-a[b?c:d:e];
+fibonacci := [n] {
+    return :=
+    if n == 0 || n == 1 then
+        1
+    else
+        fibonacci(n - 1) + fibonacci(n - 2)
+    ;
+};

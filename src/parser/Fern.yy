@@ -98,7 +98,6 @@
 %token  COLON
 %token  SEMICOLON
 %token  QUESTION
-%token  AT
 %token  BACKSLASH
 
 %token <Fern::Operator> DOT
@@ -150,7 +149,9 @@
 // %left PLUS MINUS
 // %left STAR SLASH MODULO
 
+%left PLUS MINUS
 %left EQUAL WALRUS
+%left L_PAREN R_PAREN
 %left DOT L_SQUARE
 %left COMMA
 %left THEN QUESTION WHILE
@@ -207,17 +208,14 @@ assign_op: EQUAL | WALRUS;
 
 expression_body:
     logic_exp
-    | evaluation_exp
-    | index_exp
-    | decision_exp
     | iteration_exp
     | visit_exp
-    | slice_exp
     ;
 
 expression:
     expression_body
     | concatenation_exp
+    | decision_exp
     | tag expression_body
         {
             $$ = $2;
@@ -317,6 +315,8 @@ block:
     | id
     | literal
     | index_exp
+    | slice_exp
+    | evaluation_exp
     ;
 
 tag_list:
@@ -333,12 +333,7 @@ tag_list:
     ;
 
 evaluation_exp:
-    block L_PAREN concatenation_exp R_PAREN
-        {
-            $$ = $1;
-            $$->addEvaluationList($3);
-        }
-    | block L_PAREN id R_PAREN
+    block L_PAREN expression R_PAREN
         {
             $$ = $1;
             $$->addEvaluationList($3);

@@ -14,6 +14,7 @@ index               a[b]                    returns the dependency of 'a' in slo
 index               a.b                     equivalent to 'a[b]'
 decision            if a then b             equivalent to 'if a then b else null'
 decision            a ? b                   equivalent to 'if a then b'
+                                            NOTE: decision expressions cannot be tagged
 iteration           while a do b            evaluates 'a', then if 'a' has evaluated to a truthy value, evaluates 'b' and repeats, else return 'b'
 visit               a over b                evaluate 'a' given x for every child x in the dependency tree of 'b', return last evaluation
 visit               a \ b                   same as 'a over b'
