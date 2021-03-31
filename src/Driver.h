@@ -9,6 +9,8 @@
 
 #include "Scanner.h"
 #include "Fern.tab.hh"
+#include "Interpreter.h"
+#include "ASTPrinter.h"
 
 #include <string>
 #include <cstddef>
@@ -39,13 +41,17 @@ namespace Fern {
 
         void printAST();
 
+        void interpret();
+
         void killAST();
     private:
         void parse_helper(std::istream &stream);
 
+        Fern::Interpreter *interpreter = nullptr;
         Fern::Parser *parser = nullptr;
         Fern::Scanner *scanner = nullptr;
-        Fern::ASTNode *root = nullptr;
+        Fern::ASTPrinter *printer = nullptr;
+        Fern::ASTNode *ASTRoot = nullptr;
     };
 
 }

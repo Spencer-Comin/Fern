@@ -4,84 +4,9 @@
 
 #include "AST.h"
 
-Fern::Binary::Binary(Fern::ASTNode *left, Fern::ASTNode *right,
-                     Fern::Operator op) {
-    children.resize(2);
-    children[0] = left;
-    children[1] = right;
-    this->op = op;
-}
-
-Fern::Unary::Unary(Fern::ASTNode *child, Fern::Operator op) {
-    children.resize(1);
-    children[0] = child;
-    this->op = op;
-}
-
-string Fern::Unary::info() {
-    return "Unary op: " + Fern::opToString(op);
-}
-
-string Fern::Binary::info() {
-    return "Binary op: " + Fern::opToString(op);
-}
-
-Fern::Literal::Literal(string &value, Fern::Literal::Type type) {
-    this->value = value;
-    this->type = type;
-}
-
-string Fern::Literal::info() {
-    string typeName{};
-    switch (type) {
-        case NUMBER:
-            typeName = "Number";
-            break;
-        case STRING:
-            typeName = "String";
-            break;
-        case TAG_LITERAL:
-            typeName = "Tag";
-            break;
-    }
-    return typeName + " literal: " + value;
-}
-
-Fern::ID::ID(const string &name) {
-    this->name = name;
-}
-
-string Fern::ID::info() {
-    return "Identifier: " + name;
-}
-
-
-ostream &Fern::operator<<(ostream &os, ASTNode &node) {
-    static int indent = 0;
-    os << string(indent, '\t');
-    os << (node.isEvaluation ? "Evaluated " : "") << node.info() << '\n';
-    indent++;
-    for (auto const &tag: node.tags) {
-        os << string(indent, '\t') << "TAG: " << tag << '\n';
-    }
-    for (auto const &condition: node.conditions) {
-        os << string(indent, '\t') << "CONDITION: " << condition << '\n';
-    }
-    for (auto const &child: node.children) {
-        if (child == nullptr) {
-            os << string(indent, '\t') << "EMPTY CHILD!!!\n";
-            return os;
-        }
-        os << *child;
-    }
-    indent--;
-
-    return os;
-}
-
-string Fern::ASTNode::info() {
-    return "Root";
-}
+/*******************************************************************************
+ *  ASTNode Utilities
+ ******************************************************************************/
 
 Fern::ASTNode::~ASTNode() {
     for (auto &child: children) {
@@ -89,12 +14,8 @@ Fern::ASTNode::~ASTNode() {
     }
 }
 
-void Fern::ASTNode::addTag(string &tag) {
-    tags.insert(tag);
-}
-
-void Fern::ASTNode::setTags(set<string> &new_tags) {
-    tags = new_tags;
+void Fern::ASTNode::addTags(set<string> &new_tags) {
+    tags.insert(new_tags.begin(), new_tags.end());
 }
 
 void Fern::ASTNode::addChild(Fern::ASTNode *child) {
@@ -114,18 +35,36 @@ void Fern::ASTNode::addEvaluationList(Fern::ASTNode *evaluationList) {
 }
 
 
-string Fern::Concatenation::info() {
-    return "Concatenation";
+/*******************************************************************************
+ *  Constructors
+ ******************************************************************************/
+
+Fern::Binary::Binary(Fern::ASTNode *left, Fern::ASTNode *right,
+                     Fern::Operator op) {
+    children.resize(2);
+    children[0] = left;
+    children[1] = right;
+    this->op = op;
 }
 
-string Fern::Block::info() {
-    return "Block";
+Fern::Unary::Unary(Fern::ASTNode *child, Fern::Operator op) {
+    children.resize(1);
+    children[0] = child;
+    this->op = op;
+}
+
+Fern::Literal::Literal(string &value, Fern::Literal::Type type) {
+    this->value = value;
+    this->type = type;
+}
+
+Fern::ID::ID(const string &name) {
+    this->name = name;
 }
 
 Fern::Block::Block(Fern::ASTNode *list) {
     children = list->children;
     tags = list->tags;
-    //delete list;
 }
 
 Fern::Ternary::Ternary(Fern::ASTNode *left, Fern::ASTNode *center, Fern::ASTNode *right,
@@ -137,18 +76,45 @@ Fern::Ternary::Ternary(Fern::ASTNode *left, Fern::ASTNode *center, Fern::ASTNode
     this->type = type;
 }
 
-string Fern::Ternary::info() {
-    string typeName{};
-    switch (type) {
-        case DECISION:
-            typeName = "DECISION";
-            break;
-        case SLICE:
-            typeName = "SLICE";
-            break;
-        case REPLACE:
-            typeName = "REPLACE";
-            break;
+
+/*******************************************************************************
+ *  Visitor acceptors
+ ******************************************************************************/
+
+void Fern::Unary::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitRoot(this);
+}
+
+void Fern::Binary::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitBinary(this);
+}
+
+void Fern::Literal::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitLiteral(this);
+}
+
+void Fern::ID::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitID(this);
+}
+
+void Fern::Concatenation::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitConcatenation(this);
+}
+
+void Fern::Block::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitBlock(this);
+}
+
+void Fern::Ternary::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitTernary(this);
+}
+
+void Fern::ASTNode::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitRoot(this);
+}
+
+void Fern::ASTVisitor::visitAllChildren(Fern::ASTNode *node) {
+    for (auto &child: node->children) {
+        child->accept(this);
     }
-    return "Ternary op: " + typeName;
 }

@@ -31,7 +31,7 @@ slice               a[b:c]                  returns the concatenation of depende
 
 SPECIAL SYMBOLS:
 null        empty node, can be assigned or bound to without effect. causes an error if evaluated
-top         root node of the whole program dependency tree. causes an error if evaluated, assigned or bound to
+top         ASTRoot node of the whole program dependency tree. causes an error if evaluated, assigned or bound to
 return      this is the node presented by a block to its external environment
 
 

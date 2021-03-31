@@ -14,6 +14,10 @@ Fern::Driver::~Driver() {
     scanner = nullptr;
     delete (parser);
     parser = nullptr;
+    delete (interpreter);
+    interpreter = nullptr;
+    delete (printer);
+    interpreter = nullptr;
 }
 
 void Fern::Driver::parse(const char *const filename) {
@@ -66,13 +70,29 @@ void Fern::Driver::report(const std::string &msg) {
 }
 
 void Fern::Driver::setASTRoot(Fern::ASTNode *new_root) {
-    root = new_root;
+    ASTRoot = new_root;
 }
 
 void Fern::Driver::printAST() {
-    std::cout << *root;
+    if (printer == nullptr)
+        printer = new ASTPrinter(std::cout);
+    printer->print(ASTRoot);
 }
 
 void Fern::Driver::killAST() {
-    delete root;
+    delete ASTRoot;
+}
+
+void Fern::Driver::interpret() {
+    delete interpreter;
+    try {
+        interpreter = new Interpreter();
+    } catch (std::bad_alloc &ba) {
+        std::cerr << "Failed to allocate Interpreter: (" << ba.what()
+                  << "), exiting!!!\n";
+        exit(EXIT_FAILURE);
+    }
+
+    interpreter->interpret(ASTRoot);
+
 }

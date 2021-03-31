@@ -182,7 +182,7 @@ statement_list:
         }
     | %empty
         {
-            $$ = new Fern::ASTBranch();
+            $$ = new Fern::ASTNode();
         }
     ;
 
@@ -219,7 +219,7 @@ expression:
     | tag expression_body
         {
             $$ = $2;
-            $$->setTags($1);
+            $$->addTags($1);
         }
     ;
 

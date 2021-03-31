@@ -1,4 +1,4 @@
-fibonacci := [n] {
+#memoize# fibonacci := [n] {
     return :=
     if n == 0 || n == 1 then
         1
