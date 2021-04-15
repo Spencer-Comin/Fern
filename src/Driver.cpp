@@ -14,8 +14,8 @@ Fern::Driver::~Driver() {
     scanner = nullptr;
     delete (parser);
     parser = nullptr;
-    delete (interpreter);
-    interpreter = nullptr;
+//    delete (interpreter);
+//    interpreter = nullptr;
     delete (printer);
     interpreter = nullptr;
 }

@@ -3,6 +3,7 @@
 //
 
 #include "ASTPrinter.h"
+#include "types.h"
 #include <iostream>
 
 
@@ -51,14 +52,17 @@ void Fern::ASTPrinter::visitUnary(Fern::Unary *node) {
 void Fern::ASTPrinter::visitLiteral(Fern::Literal *node) {
     string typeName{};
     switch (node->type) {
-        case Literal::Type::NUMBER:
+        case FernType::Type::NUMBER:
             typeName = "Number";
             break;
-        case Literal::Type::STRING:
+        case FernType::Type::STRING:
             typeName = "String";
             break;
-        case Literal::Type::TAG_LITERAL:
+        case FernType::Type::TAG_LITERAL:
             typeName = "Tag";
+            break;
+        case FernType::BOOL:
+            typeName = "Bool";
             break;
     }
     output() << typeName << " literal: " << node->value << '\n';

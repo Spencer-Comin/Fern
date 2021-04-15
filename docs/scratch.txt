@@ -45,6 +45,8 @@ TAGS:
             nodes default to lazy if not marked otherwise
 #static#    an expression marked static will only be run once
 
+!!! NEED OPERATORS FOR ADDING A TAG TO A NODE AND FOR CHECKING IF A NODE HAS A GIVEN TAG
+
 
 NOTES:
 -blocks evaluate to null unless they define a 'return' node

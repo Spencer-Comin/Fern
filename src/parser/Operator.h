@@ -4,7 +4,6 @@
 
 #ifndef FERN_OPERATOR_H
 #define FERN_OPERATOR_H
-#pragma once
 
 #include <string>
 

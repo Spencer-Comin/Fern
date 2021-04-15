@@ -5,7 +5,13 @@ project(Fern CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(FLEX_INCLUDE_DIR /usr/local/opt/flex/include)
 
-include_directories(src/parser src/scanner src/interpreter src/semantics)
+include_directories(
+        src
+        src/parser
+        src/scanner
+        src/interpreter
+        src/semantics
+        src/runtime)
 
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
@@ -25,7 +31,15 @@ ADD_FLEX_BISON_DEPENDENCY(scanner parser)
 add_executable(Fern src/main.cpp
         src/Driver.cpp
         ${FLEX_scanner_OUTPUTS}
-        ${BISON_parser_OUTPUTS} src/parser/Operator.h src/parser/Operator.cpp src/parser/AST.cpp src/parser/AST.h src/interpreter/Interpreter.cpp src/interpreter/Interpreter.h src/parser/ASTPrinter.cpp src/parser/ASTPrinter.h)
+        ${BISON_parser_OUTPUTS}
+        src/parser/Operator.cpp
+        src/parser/AST.cpp
+        src/interpreter/Interpreter.cpp
+        src/parser/ASTPrinter.cpp
+        src/runtime/types.cpp
+        src/runtime/types.cpp
+        src/runtime/builtins.cpp
+        src/runtime/SymbolTable.cpp src/errors.cpp src/errors.h)
 
 target_include_directories(Fern
         PRIVATE

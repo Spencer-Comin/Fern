@@ -3,6 +3,7 @@
 //
 
 #include "AST.h"
+#include "errors.h"
 
 /*******************************************************************************
  *  ASTNode Utilities
@@ -53,7 +54,7 @@ Fern::Unary::Unary(Fern::ASTNode *child, Fern::Operator op) {
     this->op = op;
 }
 
-Fern::Literal::Literal(string &value, Fern::Literal::Type type) {
+Fern::Literal::Literal(string &value, Fern::FernType::Type type) {
     this->value = value;
     this->type = type;
 }
@@ -77,7 +78,7 @@ Fern::Ternary::Ternary(Fern::ASTNode *left, Fern::ASTNode *center, Fern::ASTNode
 }
 
 
-/*******************************************************************************
+/******************************************************************************
  *  Visitor acceptors
  ******************************************************************************/
 
@@ -116,5 +117,30 @@ void Fern::ASTNode::accept(Fern::ASTVisitor *visitor) {
 void Fern::ASTVisitor::visitAllChildren(Fern::ASTNode *node) {
     for (auto &child: node->children) {
         child->accept(this);
+    }
+}
+
+Fern::FernType::FernType(Fern::Literal &ast_literal) {
+    type = ast_literal.type;
+    switch (type) {
+        case STRING:
+            stringVal = ast_literal.value;
+            break;
+        case NUMBER:
+            numberVal = std::stoi(ast_literal.value);
+            break;
+        case TAG_LITERAL:
+            tagVal = ast_literal.value;
+            break;
+        case BOOL: {
+            if (ast_literal.value == "true") {
+                boolVal = true;
+            } else if (ast_literal.value == "false") {
+                boolVal = false;
+            } else {
+                throw DebugError("boolean literal must be either 'true' or 'false'");
+            }
+            break;
+        }
     }
 }

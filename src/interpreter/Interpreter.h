@@ -6,16 +6,19 @@
 #define FERN_INTERPRETER_H
 
 #include "AST.h"
-
+#include "SymbolTable.h"
 
 namespace Fern {
-    class Interpreter : private ASTVisitor{
+
+    class Interpreter : private ASTVisitor {
     public:
-        virtual ~Interpreter() = default;
+        //Interpreter();
+        ~Interpreter() = default;
 
         void interpret(ASTNode *root);
 
     private:
+
         void visitRoot(ASTNode *node) override;
 
         void visitConcatenation(Concatenation *node) override;
@@ -31,6 +34,12 @@ namespace Fern {
         void visitLiteral(Literal *node) override;
 
         void visitID(ID *node) override;
+
+        SymbolTable environment = SymbolTable(nullptr, nullptr);
+
+        Block *currentScope = nullptr;
+
+        Reference returnBucket {};
     };
 }
 

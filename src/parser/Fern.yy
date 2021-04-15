@@ -198,7 +198,7 @@ assign_stmt:
     | tag assign_target assign_op expression
         {
             $$ = new Fern::Binary($2, $4, $3);
-            $$->setTags($1);
+            $$->addTags($1);
         }
     ;
 
@@ -423,15 +423,15 @@ unary_exp:
 literal:
     STRING
         {
-            $$ = new Fern::Literal($1, Fern::Literal::STRING);
+            $$ = new Fern::Literal($1, Fern::FernType::STRING);
         }
     | NUMBER
         {
-            $$ = new Fern::Literal($1, Fern::Literal::NUMBER);
+            $$ = new Fern::Literal($1, Fern::FernType::NUMBER);
         }
     | TAG_LITERAL
         {
-            $$ = new Fern::Literal($1, Fern::Literal::TAG_LITERAL);
+            $$ = new Fern::Literal($1, Fern::FernType::TAG_LITERAL);
         }
     ;
 

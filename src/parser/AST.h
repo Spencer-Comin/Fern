@@ -6,6 +6,7 @@
 #define FERN_AST_H
 
 #include "Operator.h"
+#include "types.h"
 
 #include <ostream>
 #include <vector>
@@ -54,9 +55,9 @@ namespace Fern {
         set<string> tags = {};
         set<string> conditions = {};
 
-    protected:
-        int evaluationIndex = -1;
         vector<ASTNode *> children;
+
+        int evaluationIndex = -1;
     };
 
     class Concatenation : public ASTNode {
@@ -105,13 +106,9 @@ namespace Fern {
     class Literal : public ASTNode {
     public:
         string value;
-        enum Type {
-            STRING,
-            NUMBER,
-            TAG_LITERAL
-        } type;
+        FernType::Type type;
 
-        Literal(string &value, Type type);
+        Literal(string &value, FernType::Type type);
 
         void accept(ASTVisitor *visitor) override;
     };
