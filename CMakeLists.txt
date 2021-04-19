@@ -43,9 +43,11 @@ add_executable(Fern src/main.cpp
 
 target_include_directories(Fern
         PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}
-            ${FLEX_INCLUDE_DIRS}
-            ${CMAKE_CURRENT_BINARY_DIR})
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${FLEX_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_BINARY_DIR})
+
+target_compile_features(Fern PUBLIC cxx_std_17) #this is apparently necessary to allow variants
 
 set_property(TARGET Fern
         PROPERTY CXX_STANDARD 14)

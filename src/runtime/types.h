@@ -7,33 +7,27 @@
 
 //#include "AST.h"
 
-#include <string>
+#include <iostream>
 #include <variant>
 
 using std::string;
+using std::ostream;
 
 namespace Fern {
     // forward declaration of Literal to make stuff work
     class Literal;
 
-    typedef string tagType;
-
-    class FernType {
+    //typedef string TagType;
+    class TagType : public string {
+        using string::string;
     public:
-        enum Type {
-            STRING,
-            NUMBER,
-            BOOL,
-            TAG_LITERAL
-        } type;
+        explicit TagType(const string& s) : string(s) {}
+    };
 
-//        union {
-        int numberVal;
-        bool boolVal;
-        string stringVal;
-        tagType tagVal;
-//        };
-        //std::variant<int, bool, string, tagType> val;
+    class FernType : public std::variant<int, bool, string, TagType> {
+    public:
+
+        using variant::variant;
 
         explicit FernType(Literal &ast_literal);
 
@@ -62,9 +56,11 @@ namespace Fern {
         FernType operator<=(FernType left);
         FernType operator>=(FernType left);
 
+        friend ostream& operator<<(ostream& os, const FernType& v);
+
         ~FernType() = default;
 
-        bool truthValue() const;
+        bool truthValue();
     };
 }
 

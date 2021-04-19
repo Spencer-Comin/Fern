@@ -5,97 +5,82 @@
 #include "types.h"
 #include "errors.h"
 
-Fern::FernType &Fern::FernType::operator=(const Fern::FernType &other) {
-    type = other.type;
-    switch (other.type) {
-        case STRING:
-            stringVal = other.stringVal;
-            break;
-        case NUMBER:
-            numberVal = other.numberVal;
-            break;
-        case TAG_LITERAL:
-            tagVal = other.tagVal;
-            break;
-        case BOOL:
-            boolVal = other.boolVal;
-            break;
-    }
-    return *this;
+using std::holds_alternative;
+using std::get;
+/******************************************************************************
+ * debug print functionality
+ ******************************************************************************/
+ostream &Fern::operator<<(ostream &os, const Fern::FernType &v) {
+    if (holds_alternative<int>(v))
+        os << get<int>(v);
+    else if (holds_alternative<string>(v))
+        os << get<string>(v);
+    else if (holds_alternative<TagType>(v))
+        os << get<TagType>(v);
+    else if (holds_alternative<bool>(v))
+        os << get<bool>(v);
+    else
+        throw DebugError("Unknown type");
+    return os;
 }
 
-bool Fern::FernType::truthValue() const {
-    switch (type) {
-        case STRING:
-            return !stringVal.empty();
-        case NUMBER:
-            return numberVal != 0;
-        case BOOL:
-            return boolVal;
-        case TAG_LITERAL:
-            return true;
-    }
+bool Fern::FernType::truthValue() {
+    if (holds_alternative<int>(*this))
+        return get<int>(*this) != 0;
+    else if (holds_alternative<string>(*this))
+        return !get<string>(*this).empty();
+    else if (holds_alternative<TagType>(*this))
+        return true;
+    else if (holds_alternative<bool>(*this))
+        return get<bool>(*this);
+    else
+        throw DebugError("Unknown type for truth value");
 }
 
-Fern::FernType Fern::FernType::operator!() {
-    boolVal = !truthValue();
-    type = BOOL;
-    return *this;
-}
+/******************************************************************************
+ * unary operators
+ ******************************************************************************/
 
-Fern::FernType Fern::FernType::operator~() {
-    switch (type) {
-        case STRING:
-            throw SemanticError("~ cannot be used on a string");
-        case NUMBER:
-            numberVal = ~numberVal;
-            return *this;
-        case BOOL:
-            boolVal = true;
-            return *this;
-        case TAG_LITERAL:
-            throw SemanticError("~ cannot be used on a tag literal");
-    }
+Fern::FernType Fern::FernType::operator+() {
+    // not valid for strings or tag literals
+    if (holds_alternative<int>(*this) || holds_alternative<bool>(*this)) // int or bool
+        return *this;
+    else if (holds_alternative<string>(*this)) // string
+        throw SemanticError("Unary + cannot be used for string");
+    else if (holds_alternative<TagType>(*this)) // tag
+        throw SemanticError("Unary + cannot be used for tag literal");
+    else
+        throw DebugError("Unknown type for unary +");
 }
 
 Fern::FernType Fern::FernType::operator-() {
-    switch (type) {
-        case STRING:
-            throw SemanticError("- cannot be used on a string");
-        case NUMBER:
-            numberVal = -numberVal;
-            return *this;
-        case BOOL:
-            return *this;
-        case TAG_LITERAL:
-            throw SemanticError("- cannot be used on a tag literal");
-    }
+    // not valid for strings or tag literals
+    if (holds_alternative<int>(*this)) // int
+        return -get<int>(*this);
+    else if (holds_alternative<bool>(*this)) // bool
+        return get<bool>(*this);
+    else if (holds_alternative<string>(*this)) // string
+        throw SemanticError("Unary - cannot be used for string");
+    else if (holds_alternative<TagType>(*this)) // tag
+        throw SemanticError("Unary - cannot be used for tag literal");
+    else
+        throw DebugError("Unknown type for unary -");
 }
 
-Fern::FernType Fern::FernType::operator+() {
-    switch (type) {
-        case STRING:
-            throw SemanticError("+ cannot be used on a string");
-        case NUMBER:
-        case BOOL:
-            return *this;
-        case TAG_LITERAL:
-            throw SemanticError("+ cannot be used on a tag literal");
-    }
+Fern::FernType Fern::FernType::operator!() {
+    return !this->truthValue();
 }
 
-
-//Fern::FernType::FernType(Fern::FernType const &other) { // copy constructor
-//    type = other.type;
-//    switch (other.type) {
-//        case STRING:
-//            stringVal = other.stringVal;
-//            break;
-//        case NUMBER:
-//            numberVal = other.numberVal;
-//            break;
-//        case TAG_LITERAL:
-//            tagVal = other.tagVal;
-//            break;
-//    }
-//}
+Fern::FernType Fern::FernType::operator~() {
+    // not valid for strings or tag literals
+    if (holds_alternative<int>(*this)) // int
+        return ~get<int>(*this);
+    else if (holds_alternative<bool>(*this)) // bool
+        return true;
+    else if (holds_alternative<string>(*this)) // string
+        throw SemanticError("Unary ~ cannot be used for string");
+    else if (holds_alternative<TagType>(*this)) // tag
+        throw SemanticError("Unary ~ cannot be used for tag literal");
+    else
+        throw DebugError("Unknown type for unary ~");
+}

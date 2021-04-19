@@ -105,10 +105,9 @@ namespace Fern {
 
     class Literal : public ASTNode {
     public:
-        string value;
-        FernType::Type type;
+        FernType value;
 
-        Literal(string &value, FernType::Type type);
+        explicit Literal(FernType &value);
 
         void accept(ASTVisitor *visitor) override;
     };

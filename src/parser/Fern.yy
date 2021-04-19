@@ -38,6 +38,7 @@
 
 
     #include "Driver.h"
+    #include "types.h"
 
     #undef yylex
     #define yylex scanner.yylex
@@ -423,15 +424,18 @@ unary_exp:
 literal:
     STRING
         {
-            $$ = new Fern::Literal($1, Fern::FernType::STRING);
+            Fern::FernType s {$1};
+            $$ = new Fern::Literal(s);
         }
     | NUMBER
         {
-            $$ = new Fern::Literal($1, Fern::FernType::NUMBER);
+            Fern::FernType n {std::stoi($1)};
+            $$ = new Fern::Literal(n);
         }
     | TAG_LITERAL
         {
-            $$ = new Fern::Literal($1, Fern::FernType::TAG_LITERAL);
+            Fern::FernType t{Fern::TagType($1)};
+            $$ = new Fern::Literal(t);
         }
     ;
 

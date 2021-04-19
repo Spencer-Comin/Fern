@@ -51,20 +51,14 @@ void Fern::ASTPrinter::visitUnary(Fern::Unary *node) {
 
 void Fern::ASTPrinter::visitLiteral(Fern::Literal *node) {
     string typeName{};
-    switch (node->type) {
-        case FernType::Type::NUMBER:
-            typeName = "Number";
-            break;
-        case FernType::Type::STRING:
-            typeName = "String";
-            break;
-        case FernType::Type::TAG_LITERAL:
-            typeName = "Tag";
-            break;
-        case FernType::BOOL:
-            typeName = "Bool";
-            break;
-    }
+    if (std::holds_alternative<int>(node->value))
+        typeName = "Number";
+    else if (std::holds_alternative<string>(node->value))
+        typeName = "String";
+    else if (std::holds_alternative<TagType>(node->value))
+        typeName = "Tag";
+    else if (std::holds_alternative<bool>(node->value))
+        typeName = "Bool";
     output() << typeName << " literal: " << node->value << '\n';
     visitAllChildren(node);
 }
