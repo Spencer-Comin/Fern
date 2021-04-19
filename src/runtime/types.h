@@ -33,6 +33,12 @@ namespace Fern {
 
         FernType &operator=(const FernType &);
 
+        ~FernType() = default;
+
+        bool truthValue();
+
+        // unary operators
+
         FernType operator+();
 
         FernType operator-();
@@ -41,26 +47,24 @@ namespace Fern {
 
         FernType operator!();
 
-        FernType operator&(FernType left);
-        FernType operator|(FernType left);
-        FernType operator^(FernType left);
-        FernType operator+(FernType left);
-        FernType operator-(FernType left);
-        FernType operator*(FernType left);
-        FernType operator/(FernType left);
-        FernType operator%(FernType left);
-        FernType operator==(FernType left);
-        FernType operator!=(FernType left);
-        FernType operator<(FernType left);
-        FernType operator>(FernType left);
-        FernType operator<=(FernType left);
-        FernType operator>=(FernType left);
+        // binary operators
+
+        FernType operator&(FernType right);
+        FernType operator|(FernType right);
+        FernType operator^(FernType right);
+        FernType operator+(FernType right);
+        FernType operator-(FernType right);
+        FernType operator*(FernType right);
+        FernType operator/(FernType right);
+        FernType operator%(FernType right);
+        FernType operator==(FernType right);
+        FernType operator!=(FernType right);
+        FernType operator<(FernType right);
+        FernType operator>(FernType right);
+        FernType operator<=(FernType right);
+        FernType operator>=(FernType right);
 
         friend ostream& operator<<(ostream& os, const FernType& v);
-
-        ~FernType() = default;
-
-        bool truthValue();
     };
 }
 

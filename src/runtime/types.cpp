@@ -4,9 +4,15 @@
 
 #include "types.h"
 #include "errors.h"
+#include "AST.h"
 
 using std::holds_alternative;
 using std::get;
+
+Fern::FernType::FernType(Fern::Literal &ast_literal) {
+    *this = ast_literal.value;
+}
+
 /******************************************************************************
  * debug print functionality
  ******************************************************************************/
@@ -75,6 +81,23 @@ Fern::FernType Fern::FernType::operator~() {
     // not valid for strings or tag literals
     if (holds_alternative<int>(*this)) // int
         return ~get<int>(*this);
+    else if (holds_alternative<bool>(*this)) // bool
+        return true;
+    else if (holds_alternative<string>(*this)) // string
+        throw SemanticError("Unary ~ cannot be used for string");
+    else if (holds_alternative<TagType>(*this)) // tag
+        throw SemanticError("Unary ~ cannot be used for tag literal");
+    else
+        throw DebugError("Unknown type for unary ~");
+}
+
+/******************************************************************************
+ * binary operators
+ ******************************************************************************/
+
+Fern::FernType Fern::FernType::operator+(Fern::FernType right) {
+    if (holds_alternative<int>(*this) && holds_alternative<int>(right)) // int + int
+        return get<int>(*this) + get<int>(right);
     else if (holds_alternative<bool>(*this)) // bool
         return true;
     else if (holds_alternative<string>(*this)) // string
