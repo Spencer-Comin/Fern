@@ -20,6 +20,7 @@ using std::stack;
 namespace Fern {
     class Reference {
     public:
+
         enum Type {
             LITERAL,
             NODE_PTR
@@ -27,7 +28,7 @@ namespace Fern {
         union {
             FernType literal;
 //            struct {
-                ASTNode *fernNode;
+            ASTNode *fernNode;
 //                int cache;
 //                bool cacheIsValid;
 //                vector<ASTNode *> parents;
@@ -36,9 +37,13 @@ namespace Fern {
 
         explicit Reference(FernType &);
 
+        explicit Reference(ASTNode *);
+
+        Reference(Reference &reference);
+
         Reference();
 
-        Reference& operator=(const Reference&);
+        Reference &operator=(const Reference &);
 
         ~Reference();
     };

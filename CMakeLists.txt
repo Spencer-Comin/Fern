@@ -1,8 +1,7 @@
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated-register")
 cmake_minimum_required(VERSION 3.19)
 project(Fern CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(FLEX_INCLUDE_DIR /usr/local/opt/flex/include)
 
 include_directories(
@@ -34,12 +33,13 @@ add_executable(Fern src/main.cpp
         ${BISON_parser_OUTPUTS}
         src/parser/Operator.cpp
         src/parser/AST.cpp
-        src/interpreter/Interpreter.cpp
         src/parser/ASTPrinter.cpp
+        src/interpreter/Interpreter.cpp
         src/runtime/types.cpp
         src/runtime/types.cpp
         src/runtime/builtins.cpp
-        src/runtime/SymbolTable.cpp src/errors.cpp src/errors.h)
+        src/runtime/SymbolTable.cpp
+        src/errors.cpp)
 
 target_include_directories(Fern
         PRIVATE

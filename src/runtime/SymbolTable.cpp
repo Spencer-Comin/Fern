@@ -23,6 +23,15 @@ Fern::Reference &Fern::Reference::operator=(const Reference& other) {
     return *this;
 }
 
+Fern::Reference::Reference(Fern::ASTNode *ptr) {
+    tag = NODE_PTR;
+    fernNode = ptr;
+}
+
+Fern::Reference::Reference(Fern::Reference &reference) {
+    *this = reference;
+}
+
 Fern::SymbolTable::SymbolTable(Fern::SymbolTable *parent, Fern::Block *scope) {
     this->parent = parent;
     this->scope = scope;

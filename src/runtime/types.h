@@ -47,6 +47,21 @@ namespace Fern {
 
         FernType operator!();
 
+        FernType operator&(FernType left);
+        FernType operator|(FernType left);
+        FernType operator^(FernType left);
+        FernType operator+(FernType left);
+        FernType operator-(FernType left);
+        FernType operator*(FernType left);
+        FernType operator/(FernType left);
+        FernType operator%(FernType left);
+        FernType operator==(FernType left);
+        FernType operator!=(FernType left);
+        FernType operator<(FernType left);
+        FernType operator>(FernType left);
+        FernType operator<=(FernType left);
+        FernType operator>=(FernType left);
+
         ~FernType() = default;
 
         bool truthValue() const;
