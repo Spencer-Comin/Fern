@@ -32,7 +32,7 @@ static int comment_nesting = 0;
 %option c++
 %option yylineno
 
-number      [-+]?[0-9_]+
+number      [0-9_]+
 id          [a-zA-Z][a-zA-Z0-9_]*
 string      \"[^"\n]*\"
 tag_lit     "`"{id}
