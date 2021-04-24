@@ -3,6 +3,7 @@
 //
 
 #include "Driver.h"
+#include "errors.h"
 
 #include <fstream>
 #include <cassert>
@@ -31,7 +32,7 @@ void Fern::Driver::parse(const char *const filename) {
 void Fern::Driver::parse(std::istream &stream) {
     if (stream.good() || !stream.eof()) {
         parse_helper(stream);
-    }
+    } else throw Fern::DebugError("bad stream");
 }
 
 void Fern::Driver::parse_helper(std::istream &stream) {
@@ -58,6 +59,7 @@ void Fern::Driver::parse_helper(std::istream &stream) {
         std::cerr << "Parse failed!!!\n";
         exit(EXIT_FAILURE);
     }
+    ;
 }
 
 void Fern::Driver::report_error(const std::string &msg) const {

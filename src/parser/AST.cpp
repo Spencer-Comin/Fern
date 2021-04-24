@@ -80,7 +80,7 @@ Fern::Ternary::Ternary(Fern::ASTNode *left, Fern::ASTNode *center, Fern::ASTNode
  ******************************************************************************/
 
 void Fern::Unary::accept(Fern::ASTVisitor *visitor) {
-    visitor->visitRoot(this);
+    visitor->visitUnary(this);
 }
 
 void Fern::Binary::accept(Fern::ASTVisitor *visitor) {

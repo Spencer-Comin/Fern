@@ -21,17 +21,33 @@ namespace Fern {
     class TagType : public string {
         using string::string;
     public:
-        explicit TagType(const string& s) : string(s) {}
+        explicit TagType(const string &s) : string(s) {}
     };
 
-    class FernType : public std::variant<int, bool, string, TagType> {
+    struct Boolean {
+        bool value;
+
+        Boolean &operator=(Boolean const &) = default;
+
+        Boolean &operator=(bool const &b) {
+            value = b;
+            return *this;
+        }
+
+        explicit operator bool() const { return value; }
+    };
+
+    const Boolean True{true};
+    const Boolean False{false};
+
+class FernType : public std::variant<std::monostate, Boolean, int, string, TagType> {
     public:
 
         using variant::variant;
 
-        explicit FernType(Literal &ast_literal);
+        FernType &operator=(FernType const &) = default;
 
-        FernType &operator=(const FernType &);
+        explicit FernType(Literal &ast_literal);
 
         ~FernType() = default;
 
@@ -50,21 +66,41 @@ namespace Fern {
         // binary operators
 
         FernType operator&(FernType right);
-        FernType operator|(FernType right);
-        FernType operator^(FernType right);
-        FernType operator+(FernType right);
-        FernType operator-(FernType right);
-        FernType operator*(FernType right);
-        FernType operator/(FernType right);
-        FernType operator%(FernType right);
-        FernType operator==(FernType right);
-        FernType operator!=(FernType right);
-        FernType operator<(FernType right);
-        FernType operator>(FernType right);
-        FernType operator<=(FernType right);
-        FernType operator>=(FernType right);
 
-        friend ostream& operator<<(ostream& os, const FernType& v);
+        FernType operator|(FernType right);
+
+        FernType operator^(FernType right);
+
+        FernType operator+(FernType right);
+
+        FernType operator-(FernType right);
+
+        FernType operator*(FernType right);
+
+        FernType operator/(FernType right);
+
+        FernType operator%(FernType right);
+
+        Boolean operator==(FernType right);
+
+        Boolean operator!=(FernType right);
+
+        Boolean operator<(FernType right);
+
+        Boolean operator>(FernType right);
+
+        Boolean operator<=(FernType right);
+
+        Boolean operator>=(FernType right);
+
+        Boolean operator&&(FernType right);
+
+        Boolean operator||(FernType right);
+
+        friend ostream &operator<<(ostream &os, const FernType &v);
+
+    private:
+
     };
 }
 

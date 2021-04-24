@@ -11,55 +11,62 @@
 #include <unordered_map>
 #include <string>
 #include <stack>
+#include <variant>
 
 using std::string;
 using std::unordered_map;
 using std::stack;
+using std::variant;
 
 
 namespace Fern {
-    class Reference {
+    class Reference : public variant<std::monostate, FernType, ASTNode *> {
     public:
+        using variant::variant;
 
-        enum Type {
-            LITERAL,
-            NODE_PTR
-        } tag;
-        union {
-            FernType literal;
-//            struct {
-            ASTNode *fernNode;
-//                int cache;
-//                bool cacheIsValid;
-//                vector<ASTNode *> parents;
-//           };
-        };
+        virtual Boolean tripleEqual(const Reference &);
 
-        explicit Reference(FernType &);
+        virtual Boolean tilde(const Reference &);
 
-        explicit Reference(ASTNode *);
-
-        Reference(Reference &reference);
-
-        Reference();
-
-        Reference &operator=(const Reference &);
-
-        ~Reference();
+//        virtual Reference &dot(const Reference &);
+//
+//        virtual Reference &decision(const Reference &);
+//
+//        virtual Reference &iteration(const Reference &);
+//
+//        virtual Reference &visit(const Reference &);
     };
+
+    class NullReference : public Reference {
+        using Reference::Reference;
+
+        Boolean tripleEqual(const Reference &) override;
+
+        Boolean tilde(const Reference &) override;
+
+//        Reference &dot(const Reference &) override;
+//
+//        Reference &decision(const Reference &) override;
+//
+//        Reference &iteration(const Reference &) override;
+//
+//        Reference &visit(const Reference &) override;
+    };
+
+    extern const NullReference &null;
 
     class SymbolTable {
     public:
-        explicit SymbolTable(SymbolTable *parent, Block *scope);
+        SymbolTable(SymbolTable *parent, Block *scope);
 
         void set(string &name, Reference &value);
 
-        Reference *get(string &name, Block *currentScope);
+        Reference &get(string &name, Block *currentScope);
 
     private:
-        SymbolTable *parent;
-        Block *scope;
-        unordered_map<string, Reference *> lookup{};
+        SymbolTable *parent{};
+        Block *scope{};
+        unordered_map<string, Reference> lookup{};
     };
 }
 

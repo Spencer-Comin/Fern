@@ -3,33 +3,27 @@
 //
 
 #include "SymbolTable.h"
+#include <queue>
 
-Fern::Reference::Reference(Fern::FernType &val) {
-    tag = LITERAL;
-    literal = val;
+const Fern::NullReference &Fern::null{};
+
+Fern::Boolean Fern::Reference::tilde(const Fern::Reference &right) {
+    // search dependencies of fernNode for target
+    ASTNode *current, *target = std::get<ASTNode *>(right);
+    std::queue<ASTNode *> q{};
+    q.push(std::get<ASTNode *>(*this));
+    while (!q.empty()) {
+        current = q.front();
+        q.pop();
+        if (current == target) return True;
+        for (auto child : current->children)
+            if (child != nullptr) q.push(child);
+    }
+    return False;
 }
 
-Fern::Reference::Reference() {
-    tag = NODE_PTR;
-    fernNode = nullptr;
-    //parents = {};
-}
-
-Fern::Reference::~Reference() {
-    delete &literal;
-}
-
-Fern::Reference &Fern::Reference::operator=(const Reference& other) {
-    return *this;
-}
-
-Fern::Reference::Reference(Fern::ASTNode *ptr) {
-    tag = NODE_PTR;
-    fernNode = ptr;
-}
-
-Fern::Reference::Reference(Fern::Reference &reference) {
-    *this = reference;
+Fern::Boolean Fern::Reference::tripleEqual(const Fern::Reference &right) {
+    return {this == &right};
 }
 
 Fern::SymbolTable::SymbolTable(Fern::SymbolTable *parent, Fern::Block *scope) {
@@ -38,17 +32,36 @@ Fern::SymbolTable::SymbolTable(Fern::SymbolTable *parent, Fern::Block *scope) {
 }
 
 void Fern::SymbolTable::set(string &name, Fern::Reference &value) {
-    lookup[name] = &value;
+    lookup.insert({name, value});
+    //lookup[name] = value;
 }
 
-Fern::Reference *Fern::SymbolTable::get(string &name, Fern::Block *currentScope) {
+Fern::Reference &Fern::SymbolTable::get(string &name, Fern::Block *currentScope) {
     if (currentScope == scope) {
         if (lookup.find(name) != lookup.end())
-            return lookup[name];
+            return lookup.at(name);
+//            return lookup[name];
         else
-            return nullptr;
+            return const_cast<NullReference &>(null);
     } else if (parent != nullptr) {
         return parent->get(name, currentScope);
     } else
-        return nullptr;
+        return const_cast<NullReference &>(null);
 }
+
+
+/*******************************************************************************
+ * NullReference methods (all return False/null)
+ ******************************************************************************/
+
+Fern::Boolean Fern::NullReference::tripleEqual(const Fern::Reference &) { return False; }
+
+Fern::Boolean Fern::NullReference::tilde(const Fern::Reference &) { return False; }
+
+//Fern::Reference &Fern::NullReference::dot(const Fern::Reference &) { return const_cast<NullReference &>(null); }
+//
+//Fern::Reference &Fern::NullReference::decision(const Fern::Reference &) { return const_cast<NullReference &>(null); }
+//
+//Fern::Reference &Fern::NullReference::iteration(const Fern::Reference &) { return const_cast<NullReference &>(null); }
+//
+//Fern::Reference &Fern::NullReference::visit(const Fern::Reference &) { return const_cast<NullReference &>(null); }

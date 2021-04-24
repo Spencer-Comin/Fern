@@ -57,7 +57,7 @@ void Fern::ASTPrinter::visitLiteral(Fern::Literal *node) {
         typeName = "String";
     else if (std::holds_alternative<TagType>(node->value))
         typeName = "Tag";
-    else if (std::holds_alternative<bool>(node->value))
+    else if (std::holds_alternative<Boolean>(node->value))
         typeName = "Bool";
     output() << typeName << " literal: " << node->value << '\n';
     visitAllChildren(node);
