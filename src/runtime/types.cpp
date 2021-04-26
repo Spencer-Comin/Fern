@@ -5,16 +5,17 @@
 #include "types.h"
 #include "errors.h"
 #include "AST.h"
+#include "globals.h"
 
 using std::holds_alternative;
 using std::get;
 using std::visit;
 
-template<class... Ts>
-struct overload : Ts ... {
-    using Ts::operator()...;
-};
-template<class... Ts> overload(Ts...) -> overload<Ts...>;
+//template<class... Ts>
+//struct overload : Ts ... {
+//    using Ts::operator()...;
+//};
+//template<class... Ts> overload(Ts...) -> overload<Ts...>;
 
 Fern::FernType::FernType(Fern::Literal &ast_literal) {
     *this = ast_literal.value;

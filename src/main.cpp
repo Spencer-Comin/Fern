@@ -1,4 +1,5 @@
 #include "Driver.h"
+#include "globals.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -17,7 +18,9 @@ int main(const int argc, const char **argv) {
         } else {
             driver.parse(argv[1]);
         }
+#ifdef DEBUG
         driver.printAST();
+#endif
         driver.interpret();
         driver.killAST();
     } else return EXIT_FAILURE;

@@ -4,6 +4,14 @@
 
 #include "Driver.h"
 #include "errors.h"
+#include "globals.h"
+
+#ifdef DEBUG
+
+#include "SymbolTable.h"
+
+#endif
+
 
 #include <fstream>
 #include <cassert>
@@ -15,10 +23,10 @@ Fern::Driver::~Driver() {
     scanner = nullptr;
     delete (parser);
     parser = nullptr;
-//    delete (interpreter);
-//    interpreter = nullptr;
-    delete (printer);
+    delete (interpreter);
     interpreter = nullptr;
+    delete (printer);
+    printer = nullptr;
 }
 
 void Fern::Driver::parse(const char *const filename) {
@@ -59,7 +67,6 @@ void Fern::Driver::parse_helper(std::istream &stream) {
         std::cerr << "Parse failed!!!\n";
         exit(EXIT_FAILURE);
     }
-    ;
 }
 
 void Fern::Driver::report_error(const std::string &msg) const {
@@ -76,6 +83,9 @@ void Fern::Driver::setASTRoot(Fern::ASTNode *new_root) {
 }
 
 void Fern::Driver::printAST() {
+#ifdef DEBUG
+    std::cout << "\nprinting\n";
+#endif
     if (printer == nullptr)
         printer = new ASTPrinter(std::cout);
     printer->print(ASTRoot);
@@ -94,7 +104,17 @@ void Fern::Driver::interpret() {
                   << "), exiting!!!\n";
         exit(EXIT_FAILURE);
     }
-
-    interpreter->interpret(ASTRoot);
+#ifdef DEBUG
+    std::cout << "\ninterpreting\n";
+#endif
+    auto exitValue = interpreter->interpret(ASTRoot);
+#ifdef DEBUG
+    std::cout << "\nfinal value in ReturnBucket:\n";
+    std::visit(overload{
+            [this](ASTNode *node) { printer->print(node); },
+            [](FernType &literal) { std::cout << literal; },
+            [](auto &&) { /* Do nothing */ }
+    }, exitValue);
+#endif
 
 }

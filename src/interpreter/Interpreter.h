@@ -12,10 +12,9 @@ namespace Fern {
 
     class Interpreter : private ASTVisitor {
     public:
-        //Interpreter();
         ~Interpreter() = default;
 
-        void interpret(ASTNode *root);
+        Reference interpret(ASTNode *root);
 
     private:
 
@@ -35,7 +34,9 @@ namespace Fern {
 
         void visitID(ID *node) override;
 
-        SymbolTable environment = SymbolTable(nullptr, nullptr);
+        void decide(Reference &condition, Reference& if_body, Reference& else_body);
+
+        SymbolTable *environment = new SymbolTable(nullptr, nullptr);
 
         Block *currentScope = nullptr;
 

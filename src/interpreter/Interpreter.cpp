@@ -4,39 +4,78 @@
 
 #include "Interpreter.h"
 #include "errors.h"
+#include "globals.h"
+#include "types.h"
+
+#ifdef DEBUG
+
 #include <iostream>
+
+#endif
 
 using std::holds_alternative;
 using std::get;
 
-void Fern::Interpreter::interpret(Fern::ASTNode *root) {
-    std::cout << "\ninterpreting\n";
+Fern::Reference Fern::Interpreter::interpret(Fern::ASTNode *root) {
     root->accept(this);
-    std::cout << get<FernType>(returnBucket) << '\n';
+    return returnBucket;
 }
 
 void Fern::Interpreter::visitRoot(Fern::ASTNode *node) {
-    visitAllChildren(node);
+#ifdef DEBUG
     std::cout << "interpreter visiting a Root\n";
+#endif
+    visitAllChildren(node);
 }
 
 void Fern::Interpreter::visitConcatenation(Fern::Concatenation *node) {
-    visitAllChildren(node);
+#ifdef DEBUG
     std::cout << "interpreter visiting a Concatenation\n";
+#endif
+    visitAllChildren(node);
 }
 
 void Fern::Interpreter::visitBlock(Fern::Block *node) {
-    // probably need a better way to associate Blocks and Symbol Tables
+#ifdef DEBUG
     std::cout << "interpreter visiting a Block\n";
+#endif
     Fern::Block *enclosing{currentScope};
-    SymbolTable *parent{&environment};
+    SymbolTable *parent{environment};
     currentScope = node;
-    environment = SymbolTable(parent, node);
+    try {
+        environment = SymbolTable::getTable(node);
+    } catch (RuntimeError &) {
+        environment = new SymbolTable(parent, node);
+    }
 
     visitAllChildren(node);
 
     currentScope = enclosing;
-    environment = *parent;
+    environment = parent;
+}
+
+void
+Fern::Interpreter::decide(Fern::Reference &condition_body, Reference &if_body, Reference &else_body) {
+    bool condition = std::visit(overload{
+            [this](ASTNode *node) -> bool {
+                node->accept(this);
+                return get<FernType>(returnBucket).truthValue();
+            },
+            [](FernType &literal) -> bool { return literal.truthValue(); },
+            [](auto &&) -> bool { throw DebugError("bad condition reference in decision"); }
+    }, condition_body);
+    if (condition) {
+        std::visit(overload{
+                [this](ASTNode *node) { node->accept(this); },
+                [this](FernType &literal) { returnBucket = literal; },
+                [](auto &&) { throw DebugError("bad if body reference in decision"); }
+        }, if_body);
+    } else
+        std::visit(overload{
+                [this](ASTNode *node) { node->accept(this); },
+                [this](FernType &literal) { returnBucket = literal; },
+                [](auto &&) { throw DebugError("bad else body reference in decision"); }
+        }, else_body);
 }
 
 static inline bool isCxxOp(Fern::Operator op) {
@@ -55,8 +94,7 @@ static inline bool isCxxOp(Fern::Operator op) {
         case Fern::Operator::GT:
         case Fern::Operator::LT_EQUAL:
         case Fern::Operator::GT_EQUAL:
-        case Fern::Operator::BANG:
-            return true;
+        case Fern::Operator::BANG:return true;
 
         case Fern::Operator::TILDE:
         case Fern::Operator::DOUBLE_AND:
@@ -67,27 +105,48 @@ static inline bool isCxxOp(Fern::Operator op) {
         case Fern::Operator::DOT:
         case Fern::Operator::DECISION:
         case Fern::Operator::ITERATION:
-        case Fern::Operator::VISIT:
-            return false;
+        case Fern::Operator::VISIT:return false;
     }
 }
 
 void Fern::Interpreter::visitBinary(Fern::Binary *node) {
-    //visitAllChildren(node);
+#ifdef DEBUG
     std::cout << "interpreter visiting a Binary\n";
-    /* visit left side */
-    node->children[0]->accept(this);
-    Reference left = returnBucket;
-    /* visit right side */
-    node->children[1]->accept(this);
-    Reference right = returnBucket;
+#endif
+    Reference left, right;
 
-    // need a check in here to make sure that left and right both hold FernType
+    if (!(node->op == Operator::EQUAL || node->op == Operator::WALRUS)) {
+        /* visit left side */
+        node->children[0]->accept(this);
+        left = returnBucket;
+        /* visit right side */
+        node->children[1]->accept(this);
+        right = returnBucket;
+    }
+
+    if (!(node->op == Operator::EQUAL || node->op == Operator::WALRUS) && !(holds_alternative<FernType>(left) && holds_alternative<FernType>(right))) {
+        ASTNode *leftNode, *rightNode;
+        if (holds_alternative<ASTNode *>(left))
+            leftNode = get<ASTNode *>(left);
+        else if (holds_alternative<FernType>(left))
+            leftNode = new Literal(get<FernType>(left));
+        else
+            throw DebugError("Empty lvalue");
+
+        if (holds_alternative<ASTNode *>(right))
+            rightNode = get<ASTNode *>(right);
+        else if (holds_alternative<FernType>(right))
+            rightNode = new Literal(get<FernType>(right));
+        else
+            throw DebugError("Empty rvalue");
+
+        returnBucket = Reference(new Binary(leftNode, rightNode, node->op));
+        return;
+    }
 
     switch (node->op) {
         // for operators that exist in c++, we can use operator overloading and treat all identically
 #define CXX_OP(op) returnBucket = get<FernType>(left) op get<FernType>(right); break
-
         case Operator::AND: CXX_OP(&);
         case Operator::OR: CXX_OP(|);
         case Operator::XOR: CXX_OP(^);
@@ -104,11 +163,13 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
         case Operator::GT_EQUAL: CXX_OP(>=);
         case Operator::DOUBLE_AND: CXX_OP(&&);
         case Operator::DOUBLE_OR: CXX_OP(||);
+#undef CXX_OP
 
-        case Operator::TRIPLE_EQUAL:
+        case Operator::TRIPLE_EQUAL: {
             returnBucket = left.tripleEqual(right);
             break;
-        case Operator::TILDE:
+        }
+        case Operator::TILDE: {
             returnBucket = left.tilde(right);
             break;
         case Operator::DOT:
@@ -119,67 +180,62 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
             break;
         case Operator::VISIT:
             break;
+        }
 
         case Operator::EQUAL: {
             string name = dynamic_cast<ID *>(node->children[0])->name;
-//            Reference dynamicRight = *(new FernType());
-//            dynamicRight = right;
-            environment.set(name, right);
+            node->children[1]->accept(this);
+            environment->set(name, returnBucket);
             break;
         }
         case Operator::WALRUS: {
             string name = dynamic_cast<ID *>(node->children[0])->name;
             right = node->children[1];
-            environment.set(name, right);
+            environment->set(name, right);
             break;
         }
-        default:
-            throw DebugError("unrecognized binary op");
+        default:throw DebugError("unrecognized binary op");
     }
 }
 
 void Fern::Interpreter::visitTernary(Fern::Ternary *node) {
-    visitAllChildren(node);
+#ifdef DEBUG
     std::cout << "interpreter visiting a Ternary\n";
+#endif
+    visitAllChildren(node);
 }
 
 void Fern::Interpreter::visitUnary(Fern::Unary *node) {
+#ifdef DEBUG
+    std::cout << "interpreter visiting a Unary\n";
+#endif
     node->children[0]->accept(this);
     if (holds_alternative<ASTNode *>(returnBucket))
         returnBucket = Reference(new Unary(get<ASTNode *>(returnBucket), node->op));
     else
         switch (node->op) {
-            case Operator::PLUS:
-                returnBucket = +get<FernType>(returnBucket);
+            case Operator::PLUS:returnBucket = +get<FernType>(returnBucket);
                 break;
-            case Operator::MINUS:
-                returnBucket = -get<FernType>(returnBucket);
+            case Operator::MINUS:returnBucket = -get<FernType>(returnBucket);
                 break;
-            case Operator::TILDE:
-                returnBucket = ~get<FernType>(returnBucket);
+            case Operator::TILDE:returnBucket = ~get<FernType>(returnBucket);
                 break;
-            case Operator::BANG:
-                returnBucket = !get<FernType>(returnBucket);
+            case Operator::BANG:returnBucket = !get<FernType>(returnBucket);
                 break;
-            default:
-                throw DebugError("unrecognized unary op");
+            default:throw DebugError("unrecognized unary op");
         }
-    std::cout << "interpreter visiting a Unary\n";
 }
 
 void Fern::Interpreter::visitLiteral(Fern::Literal *node) {
+#ifdef DEBUG
     std::cout << "interpreter visiting a Literal: " << node->value << "\n";
-    //visitAllChildren(node);
-//    Literal obj = *node;
-//    FernType value{obj};
-//    returnBucket.tag = Reference::LITERAL;
+#endif
     returnBucket = node->value;
-//    returnBucket = Fern::Reference(value);
-
 }
 
 void Fern::Interpreter::visitID(Fern::ID *node) {
-    //visitAllChildren(node);
+#ifdef DEBUG
     std::cout << "interpreter visiting an ID: " << node->name << "\n";
-    returnBucket = environment.get(node->name, currentScope);
+#endif
+    returnBucket = environment->get(node->name);
 }

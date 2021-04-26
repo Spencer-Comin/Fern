@@ -69,8 +69,7 @@ void Fern::ASTPrinter::visitID(Fern::ID *node) {
 }
 
 void Fern::ASTPrinter::print(Fern::ASTNode *root) {
-    output() << "\nprinting\n";
-    visitRoot(root);
+    root->accept(this);
 }
 
 void Fern::ASTPrinter::visitAllChildren(Fern::ASTNode *node) {

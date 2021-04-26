@@ -61,9 +61,12 @@ namespace Fern {
 
         void set(string &name, Reference &value);
 
-        Reference &get(string &name, Block *currentScope);
+        Reference &get(string &name);
+
+        static SymbolTable * getTable(Block* scope);
 
     private:
+        static inline unordered_map<Block*, SymbolTable*> directory{};
         SymbolTable *parent{};
         Block *scope{};
         unordered_map<string, Reference> lookup{};

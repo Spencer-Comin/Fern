@@ -3,6 +3,7 @@
 //
 
 #include "SymbolTable.h"
+#include "errors.h"
 #include <queue>
 
 const Fern::NullReference &Fern::null{};
@@ -29,24 +30,28 @@ Fern::Boolean Fern::Reference::tripleEqual(const Fern::Reference &right) {
 Fern::SymbolTable::SymbolTable(Fern::SymbolTable *parent, Fern::Block *scope) {
     this->parent = parent;
     this->scope = scope;
+    directory[scope] = this;
 }
 
 void Fern::SymbolTable::set(string &name, Fern::Reference &value) {
     lookup.insert({name, value});
-    //lookup[name] = value;
 }
 
-Fern::Reference &Fern::SymbolTable::get(string &name, Fern::Block *currentScope) {
-    if (currentScope == scope) {
-        if (lookup.find(name) != lookup.end())
-            return lookup.at(name);
-//            return lookup[name];
-        else
-            return const_cast<NullReference &>(null);
-    } else if (parent != nullptr) {
-        return parent->get(name, currentScope);
+Fern::Reference &Fern::SymbolTable::get(string &name) {
+
+    if (lookup.find(name) != lookup.end())
+        return lookup.at(name);
+    else if (parent != nullptr) {
+        return parent->get(name);
     } else
         return const_cast<NullReference &>(null);
+}
+
+Fern::SymbolTable* Fern::SymbolTable::getTable(Fern::Block* scope) {
+    if (directory.find(scope) != directory.end())
+        return directory.at(scope);
+    else
+        throw Fern::RuntimeError("Cannot find an associated Symbol Table for given scope");
 }
 
 
