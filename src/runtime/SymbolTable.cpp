@@ -29,12 +29,11 @@ Fern::Boolean Fern::Reference::tripleEqual(const Fern::Reference &right) {
 
 Fern::SymbolTable::SymbolTable(Fern::SymbolTable *parent, Fern::Block *scope) {
     this->parent = parent;
-    this->scope = scope;
     directory[scope] = this;
 }
 
 void Fern::SymbolTable::set(string &name, Fern::Reference &value) {
-    lookup.insert({name, value});
+    lookup[name] = value;
 }
 
 Fern::Reference &Fern::SymbolTable::get(string &name) {
@@ -47,7 +46,7 @@ Fern::Reference &Fern::SymbolTable::get(string &name) {
         return const_cast<NullReference &>(null);
 }
 
-Fern::SymbolTable* Fern::SymbolTable::getTable(Fern::Block* scope) {
+Fern::SymbolTable *Fern::SymbolTable::getTable(Fern::Block *scope) {
     if (directory.find(scope) != directory.end())
         return directory.at(scope);
     else

@@ -68,7 +68,6 @@ namespace Fern {
     private:
         static inline unordered_map<Block*, SymbolTable*> directory{};
         SymbolTable *parent{};
-        Block *scope{};
         unordered_map<string, Reference> lookup{};
     };
 }

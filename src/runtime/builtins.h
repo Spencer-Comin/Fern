@@ -12,8 +12,7 @@
 using std::ostream;
 using std::istream;
 
-namespace Fern {
-    namespace Builtins {
+namespace Fern::Builtins {
         class Output : public ID {
             ostream &out;
             explicit Output(ostream&);
@@ -23,7 +22,6 @@ namespace Fern {
             istream &in;
             explicit Input(istream&);
         };
-    }
 }
 
 

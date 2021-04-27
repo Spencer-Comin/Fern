@@ -5,11 +5,11 @@
 #include "builtins.h"
 
 Fern::Builtins::Output::Output(ostream &os) : ID("output"), out(os) {
-    conditions.insert("value");
+    conditions.emplace_back("value");
     evaluationIndex = 1;
 }
 
 Fern::Builtins::Input::Input(istream &is) : ID("input"), in(is) {
-    conditions.insert("value");
+    conditions.emplace_back("value");
     evaluationIndex = 1;
 }

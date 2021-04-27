@@ -22,6 +22,12 @@ void Fern::ASTPrinter::visitBlock(Fern::Block *node) {
     visitAllChildren(node);
 }
 
+void Fern::ASTPrinter::visitEvaluator(Fern::Evaluator *node) {
+    output() << "Evaluator\n";
+    output() << "BODY: ";
+    visitAllChildren(node);
+}
+
 void Fern::ASTPrinter::visitBinary(Fern::Binary *node) {
     output() << "Binary op: " << Fern::opToString(node->op) << '\n';
     visitAllChildren(node);
@@ -88,3 +94,5 @@ std::ostream &Fern::ASTPrinter::output() {
     out << std::string(indent, '\t');
     return out;
 }
+
+

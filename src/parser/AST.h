@@ -37,7 +37,7 @@ namespace Fern {
 
         void addTags(set<string> &tags);
 
-        void setConditions(set<string> &conditions);
+        void setConditions(vector<string> &conditions);
 
         void addChild(ASTNode *child);
 
@@ -49,19 +49,26 @@ namespace Fern {
 
         friend class ASTVisitor;
 
-        bool parenthesized = false;
-        bool isEvaluation = false;
+        bool parenthesized {false};
+        bool isEvaluation {false};
 
-        set<string> tags = {};
-        set<string> conditions = {};
+        set<string> tags {};
+        vector<string> conditions {};
 
         vector<ASTNode *> children;
 
-        int evaluationIndex = -1;
+        int evaluationIndex{-1};
     };
 
     class Concatenation : public ASTNode {
     public:
+        void accept(ASTVisitor *visitor) override;
+    };
+
+    class Evaluator : public ASTNode {
+    public:
+        Evaluator(ASTNode* block, ASTNode* conditionList);
+
         void accept(ASTVisitor *visitor) override;
     };
 
@@ -129,6 +136,8 @@ namespace Fern {
         virtual void visitConcatenation(Concatenation *node) = 0;
 
         virtual void visitBlock(Block *node) = 0;
+
+        virtual void visitEvaluator(Evaluator* node) = 0;
 
         virtual void visitBinary(Binary *node) = 0;
 

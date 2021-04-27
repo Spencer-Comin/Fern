@@ -306,7 +306,8 @@ conditional_block:
     L_SQUARE tag_list R_SQUARE basic_block
         {
             $$ = $4;
-            $$->setConditions($2);
+            std::vector<std::string> v($2.begin(), $2.end());
+            $$->setConditions(v);
         }
     ;
 
@@ -336,13 +337,11 @@ tag_list:
 evaluation_exp:
     block L_PAREN expression R_PAREN
         {
-            $$ = $1;
-            $$->addEvaluationList($3);
+            $$ = new Fern::Evaluator($1, $3);
         }
     | block L_PAREN R_PAREN
         {
-            $$ = $1;
-            $$->addEvaluationList(nullptr);
+            $$ = new Fern::Evaluator($1, nullptr);
         }
     ;
 

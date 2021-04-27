@@ -124,21 +124,22 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
         right = returnBucket;
     }
 
-    if (!(node->op == Operator::EQUAL || node->op == Operator::WALRUS) && !(holds_alternative<FernType>(left) && holds_alternative<FernType>(right))) {
+    if (!(node->op == Operator::EQUAL || node->op == Operator::WALRUS) &&
+        !(holds_alternative<FernType>(left) && holds_alternative<FernType>(right))) {
         ASTNode *leftNode, *rightNode;
         if (holds_alternative<ASTNode *>(left))
             leftNode = get<ASTNode *>(left);
         else if (holds_alternative<FernType>(left))
             leftNode = new Literal(get<FernType>(left));
         else
-            throw DebugError("Empty lvalue");
+            throw DebugError("invalid lvalue for lazy evaluation");
 
         if (holds_alternative<ASTNode *>(right))
             rightNode = get<ASTNode *>(right);
         else if (holds_alternative<FernType>(right))
             rightNode = new Literal(get<FernType>(right));
         else
-            throw DebugError("Empty rvalue");
+            throw DebugError("invalid rvalue for lazy evaluation");
 
         returnBucket = Reference(new Binary(leftNode, rightNode, node->op));
         return;
@@ -172,15 +173,11 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
         case Operator::TILDE: {
             returnBucket = left.tilde(right);
             break;
-        case Operator::DOT:
-            break;
-        case Operator::DECISION:
-            break;
-        case Operator::ITERATION:
-            break;
-        case Operator::VISIT:
-            break;
         }
+        case Operator::DOT:break;
+        case Operator::DECISION:break;
+        case Operator::ITERATION:break;
+        case Operator::VISIT:break;
 
         case Operator::EQUAL: {
             string name = dynamic_cast<ID *>(node->children[0])->name;
@@ -238,4 +235,54 @@ void Fern::Interpreter::visitID(Fern::ID *node) {
     std::cout << "interpreter visiting an ID: " << node->name << "\n";
 #endif
     returnBucket = environment->get(node->name);
+}
+
+void Fern::Interpreter::visitEvaluator(Fern::Evaluator *node) {
+#ifdef DEBUG
+    std::cout << "interpreter visiting an Evaluator\n";
+#endif
+    auto parameters = node->children[1];
+    if (parameters == nullptr) { // no parameters, valid to evaluate anything
+        node->children[0]->accept(this);
+        std::visit(overload{
+                [this](FernType &literal) { returnBucket = literal; },
+                [this](ASTNode *node) { node->accept(this); },
+                [](auto &&) { throw RuntimeError("Cannot evaluate null value"); }
+        }, returnBucket);
+    } else { // yes parameters, only valid for block
+
+        Block *body = nullptr;
+        auto id = dynamic_cast<ID *>(node->children[0]);
+        if (id != nullptr) { // body is ID
+            id->accept(this);
+            if (holds_alternative<ASTNode *>(returnBucket))
+                body = dynamic_cast<Block *>(get<ASTNode *>(returnBucket));
+            else goto nonblock;
+        } else { // body is not ID, try block
+            body = dynamic_cast<Block *>(node->children[0]);
+        }
+        nonblock:
+        if (body == nullptr) throw RuntimeError("cannot evaluate non block with parameters");
+
+        // set parameters in body's environment
+        SymbolTable* env;
+        try {
+            env = SymbolTable::getTable(body);
+        } catch (RuntimeError) {
+            env = new SymbolTable(environment, body);
+        }
+        if (body->conditions.size() == 1) {
+            parameters->accept(this);
+            env->set(body->conditions[0], returnBucket);
+        } else if (body->conditions.size() != parameters->children.size())
+            throw RuntimeError("wrong number of parameters");
+        else {
+            for (int i = 0; i < node->children.size(); i++) {
+                parameters->children[i]->accept(this);
+                env->set(body->conditions[i], returnBucket);
+            }
+        }
+        // evaluate body
+        body->accept(this);
+    }
 }

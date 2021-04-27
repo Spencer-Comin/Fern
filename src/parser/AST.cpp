@@ -23,7 +23,7 @@ void Fern::ASTNode::addChild(Fern::ASTNode *child) {
     children.push_back(child);
 }
 
-void Fern::ASTNode::setConditions(set<string> &new_conditions) {
+void Fern::ASTNode::setConditions(vector<string> &new_conditions) {
     conditions = new_conditions;
 }
 
@@ -74,6 +74,12 @@ Fern::Ternary::Ternary(Fern::ASTNode *left, Fern::ASTNode *center, Fern::ASTNode
     this->type = type;
 }
 
+Fern::Evaluator::Evaluator(Fern::ASTNode *block, Fern::ASTNode *conditionList) {
+    children.resize(2);
+    children[0] = block;
+    children[1] = conditionList;
+}
+
 
 /******************************************************************************
  *  Visitor acceptors
@@ -111,8 +117,13 @@ void Fern::ASTNode::accept(Fern::ASTVisitor *visitor) {
     visitor->visitRoot(this);
 }
 
+void Fern::Evaluator::accept(Fern::ASTVisitor *visitor) {
+    visitor->visitEvaluator(this);
+}
+
 void Fern::ASTVisitor::visitAllChildren(Fern::ASTNode *node) {
     for (auto &child: node->children) {
-        child->accept(this);
+        if (child != nullptr)
+            child->accept(this);
     }
 }

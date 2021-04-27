@@ -24,6 +24,8 @@ namespace Fern {
 
         void visitBlock(Block *node) override;
 
+        void visitEvaluator(Evaluator* node) override;
+
         void visitBinary(Binary *node) override;
 
         void visitTernary(Ternary *node) override;
