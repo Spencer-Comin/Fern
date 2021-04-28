@@ -29,10 +29,8 @@ void Fern::ASTNode::setConditions(vector<string> &new_conditions) {
 
 void Fern::ASTNode::addEvaluationList(Fern::ASTNode *evaluationList) {
     if (evaluationList != nullptr) {
-        evaluationIndex = children.size();
         addChild(evaluationList);
     }
-    isEvaluation = true;
 }
 
 

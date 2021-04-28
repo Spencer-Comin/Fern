@@ -50,6 +50,9 @@ void Fern::Interpreter::visitBlock(Fern::Block *node) {
 
     visitAllChildren(node);
 
+    string return_name{"return"};
+    returnBucket = environment->get(return_name);
+
     currentScope = enclosing;
     environment = parent;
 }
@@ -105,7 +108,8 @@ static inline bool isCxxOp(Fern::Operator op) {
         case Fern::Operator::DOT:
         case Fern::Operator::DECISION:
         case Fern::Operator::ITERATION:
-        case Fern::Operator::VISIT:return false;
+        case Fern::Operator::VISIT:
+        case Fern::Operator::AT:return false;
     }
 }
 
@@ -124,8 +128,7 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
         right = returnBucket;
     }
 
-    if (!(node->op == Operator::EQUAL || node->op == Operator::WALRUS) &&
-        !(holds_alternative<FernType>(left) && holds_alternative<FernType>(right))) {
+    if (isCxxOp(node->op) && !(holds_alternative<FernType>(left) && holds_alternative<FernType>(right))) {
         ASTNode *leftNode, *rightNode;
         if (holds_alternative<ASTNode *>(left))
             leftNode = get<ASTNode *>(left);
@@ -172,6 +175,15 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
         }
         case Operator::TILDE: {
             returnBucket = left.tilde(right);
+            break;
+        }
+        case Operator::AT: {
+            FernType left_val;
+            if (holds_alternative<ASTNode *>(right) && holds_alternative<FernType>(left) &&
+                holds_alternative<TagType>(left_val = get<FernType>(left))) {
+                auto &tag_set = get<ASTNode *>(right)->tags;
+                returnBucket = Fern::Boolean{tag_set.find(get<TagType>(left_val)) != tag_set.end()};
+            } else returnBucket = False;
             break;
         }
         case Operator::DOT:break;
@@ -265,10 +277,10 @@ void Fern::Interpreter::visitEvaluator(Fern::Evaluator *node) {
         if (body == nullptr) throw RuntimeError("cannot evaluate non block with parameters");
 
         // set parameters in body's environment
-        SymbolTable* env;
+        SymbolTable *env;
         try {
             env = SymbolTable::getTable(body);
-        } catch (RuntimeError) {
+        } catch (RuntimeError&) {
             env = new SymbolTable(environment, body);
         }
         if (body->conditions.size() == 1) {

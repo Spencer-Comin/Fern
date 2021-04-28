@@ -104,6 +104,7 @@
 %token <Fern::Operator> DOT
 %token <Fern::Operator> EQUAL
 %token <Fern::Operator> WALRUS
+%token <Fern::Operator> AT
 
 %type  <Fern::Operator> add_op
 %type  <Fern::Operator> mul_op
@@ -442,7 +443,7 @@ mul_op: STAR | SLASH | MODULO;
 
 add_op: PLUS | MINUS;
 
-comp_op: TRIPLE_EQUAL | DOUBLE_EQUAL | BANG_EQUAL | LT_EQUAL | GT_EQUAL | LT | GT | TILDE;
+comp_op: TRIPLE_EQUAL | DOUBLE_EQUAL | BANG_EQUAL | LT_EQUAL | GT_EQUAL | LT | GT | TILDE | AT;
 
 logic_op: DOUBLE_AND | DOUBLE_OR;
 

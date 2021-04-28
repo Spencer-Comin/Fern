@@ -50,6 +50,8 @@ namespace Fern {
                 return "WALRUS :=";
             case Operator::DOT:
                 return "DOT .";
+            case Operator::AT:
+                return "AT @";
             case Operator::DECISION:
                 return "DECISION";
             case Operator::ITERATION:

@@ -24,7 +24,7 @@ void Fern::ASTPrinter::visitBlock(Fern::Block *node) {
 
 void Fern::ASTPrinter::visitEvaluator(Fern::Evaluator *node) {
     output() << "Evaluator\n";
-    output() << "BODY: ";
+    output() << "--BODY--\n";
     visitAllChildren(node);
 }
 
