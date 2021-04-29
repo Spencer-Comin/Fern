@@ -195,12 +195,13 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
             break;
         }
         case Operator::ITERATION: { // TODO: figure out iterations
+
             break;
         }
         case Operator::VISIT: {
-            if (!holds_alternative<ASTNode*>(left)) throw RuntimeError("bad lvalue for visit");
-            if (!holds_alternative<ASTNode*>(right)) throw RuntimeError("bad rvalue for visit");
-            auto left_node = get<ASTNode*>(left), right_node = get<ASTNode*>(right);
+            if (!holds_alternative<ASTNode *>(left)) throw RuntimeError("bad lvalue for visit");
+            if (!holds_alternative<ASTNode *>(right)) throw RuntimeError("bad rvalue for visit");
+            auto left_node = get<ASTNode *>(left), right_node = get<ASTNode *>(right);
             if (left_node->conditions.size() != 1) throw RuntimeError("visit lvalue must have one condition");
             SymbolTable *env;
             Block *body = nullptr;
@@ -251,7 +252,47 @@ void Fern::Interpreter::visitTernary(Fern::Ternary *node) {
 #ifdef DEBUG
     std::cout << "interpreter visiting a Ternary\n";
 #endif
-    visitAllChildren(node);
+    switch (node->type) {
+        case Ternary::DECISION: {
+            node->children[0]->accept(this);
+            auto left = returnBucket;
+            node->children[1]->accept(this);
+            auto centre = returnBucket;
+            node->children[2]->accept(this);
+            auto right = returnBucket;
+            decide(left, centre, right);
+            break;
+        }
+        case Ternary::SLICE: {
+            FernType literal;
+            int top, bottom;
+            node->children[1]->accept(this);
+            if (!holds_alternative<FernType>(returnBucket) ||
+                !holds_alternative<int>(literal = get<FernType>(returnBucket)))
+                throw RuntimeError("slice bottom must be an int");
+            bottom = get<int>(literal);
+            node->children[2]->accept(this);
+            if (!holds_alternative<FernType>(returnBucket) ||
+                !holds_alternative<int>(literal = get<FernType>(returnBucket)))
+                throw RuntimeError("slice top must be an int");
+            top = get<int>(literal);
+            auto slice = new Concatenation();
+
+            auto list = dynamic_cast<Concatenation*>(node->children[0]);
+            if (list == nullptr) {
+                node->children[0]->accept(this);
+                if (!holds_alternative<ASTNode*>(returnBucket)) throw RuntimeError("bad slice");
+                list = dynamic_cast<Concatenation*>(get<ASTNode*>(returnBucket));
+                if (list == nullptr) throw RuntimeError("bad slice");
+            }
+            for (int i = bottom; i < top; i++) {
+                slice->children.push_back(list->children[i]);
+            }
+            returnBucket = slice;
+            break;
+        }
+        case Ternary::REPLACE:break; //TODO: figure out replace
+    }
 }
 
 void Fern::Interpreter::visitUnary(Fern::Unary *node) {
@@ -320,7 +361,7 @@ void Fern::Interpreter::visitEvaluator(Fern::Evaluator *node) {
         SymbolTable *env;
         try {
             env = SymbolTable::getTable(body);
-        } catch (RuntimeError&) {
+        } catch (RuntimeError &) {
             env = new SymbolTable(environment, body);
         }
         if (body->conditions.size() == 1) {
