@@ -34,7 +34,7 @@ ostream &Fern::operator<<(ostream &os, const Fern::FernType &v) {
     else if (holds_alternative<Boolean>(v))
         os << (get<Boolean>(v).value ? "true" : "false");
     else
-        throw DebugError("Unknown type");
+        os << "null";
     return os;
 }
 

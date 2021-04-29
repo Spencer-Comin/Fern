@@ -186,15 +186,55 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
             } else returnBucket = False;
             break;
         }
-        case Operator::DOT:break;
-        case Operator::DECISION:break;
-        case Operator::ITERATION:break;
-        case Operator::VISIT:break;
-
+        case Operator::DOT:break; // TODO: figure out dot
+        case Operator::DECISION: {
+            FernType null_value{};
+            Literal else_node{null_value};
+            Reference else_body{&else_node};
+            decide(left, right, else_body);
+            break;
+        }
+        case Operator::ITERATION: { // TODO: figure out iterations
+            break;
+        }
+        case Operator::VISIT: {
+            if (!holds_alternative<ASTNode*>(left)) throw RuntimeError("bad lvalue for visit");
+            if (!holds_alternative<ASTNode*>(right)) throw RuntimeError("bad rvalue for visit");
+            auto left_node = get<ASTNode*>(left), right_node = get<ASTNode*>(right);
+            if (left_node->conditions.size() != 1) throw RuntimeError("visit lvalue must have one condition");
+            SymbolTable *env;
+            Block *body = nullptr;
+            auto id = dynamic_cast<ID *>(node->children[0]);
+            if (id != nullptr) { // body is ID
+                id->accept(this);
+                if (holds_alternative<ASTNode *>(returnBucket))
+                    body = dynamic_cast<Block *>(get<ASTNode *>(returnBucket));
+                else goto nonblock;
+            } else { // body is not ID, try block
+                body = dynamic_cast<Block *>(node->children[0]);
+            }
+            nonblock:
+            if (body == nullptr) throw RuntimeError("cannot evaluate non block with parameters");
+            try {
+                env = SymbolTable::getTable(body);
+            } catch (RuntimeError &) {
+                env = new SymbolTable(environment, body);
+            }
+            for (auto child: right_node->children) {
+                child->accept(this);
+                env->set(left_node->conditions[0], returnBucket);
+                left_node->accept(this);
+            }
+            break;
+        }
         case Operator::EQUAL: {
             string name = dynamic_cast<ID *>(node->children[0])->name;
             node->children[1]->accept(this);
-            environment->set(name, returnBucket);
+            if (node->tags.find(string{"global"}) != node->tags.end()) {
+                global->set(name, returnBucket);
+            } else {
+                environment->set(name, returnBucket);
+            }
             break;
         }
         case Operator::WALRUS: {

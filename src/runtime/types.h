@@ -40,7 +40,7 @@ namespace Fern {
     const Boolean True{true};
     const Boolean False{false};
 
-class FernType : public std::variant<std::monostate, Boolean, int, string, TagType> {
+    class FernType : public std::variant<std::monostate, Boolean, int, string, TagType> {
     public:
 
         using variant::variant;
@@ -51,7 +51,7 @@ class FernType : public std::variant<std::monostate, Boolean, int, string, TagTy
 
         ~FernType() = default;
 
-        bool truthValue();
+        virtual bool truthValue();
 
         // unary operators
 

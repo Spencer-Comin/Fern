@@ -40,6 +40,8 @@ namespace Fern {
 
         SymbolTable *environment = new SymbolTable(nullptr, nullptr);
 
+        SymbolTable *global = environment;
+
         Block *currentScope = nullptr;
 
         Reference returnBucket {};
