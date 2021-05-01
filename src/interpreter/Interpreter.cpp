@@ -119,7 +119,7 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
 #endif
     Reference left, right;
 
-    if (!(node->op == Operator::EQUAL || node->op == Operator::WALRUS)) {
+    if (!(node->op == Operator::EQUAL || node->op == Operator::WALRUS || node->op == Operator::DECISION)) {
         /* visit left side */
         node->children[0]->accept(this);
         left = returnBucket;
@@ -189,13 +189,14 @@ void Fern::Interpreter::visitBinary(Fern::Binary *node) {
         case Operator::DOT:break; // TODO: figure out dot
         case Operator::DECISION: {
             FernType null_value{};
-            Literal else_node{null_value};
-            Reference else_body{&else_node};
-            decide(left, right, else_body);
+            node->children[0]->accept(this);
+            if (evaluateCondition(returnBucket))
+                node->children[1]->accept(this);
+            else
+                returnBucket = null_value;
             break;
         }
         case Operator::ITERATION: { // TODO: figure out iterations
-
             break;
         }
         case Operator::VISIT: {
@@ -255,12 +256,10 @@ void Fern::Interpreter::visitTernary(Fern::Ternary *node) {
     switch (node->type) {
         case Ternary::DECISION: {
             node->children[0]->accept(this);
-            auto left = returnBucket;
-            node->children[1]->accept(this);
-            auto centre = returnBucket;
-            node->children[2]->accept(this);
-            auto right = returnBucket;
-            decide(left, centre, right);
+            if (evaluateCondition(returnBucket))
+                node->children[1]->accept(this);
+            else
+                node->children[2]->accept(this);
             break;
         }
         case Ternary::SLICE: {
@@ -358,12 +357,8 @@ void Fern::Interpreter::visitEvaluator(Fern::Evaluator *node) {
         if (body == nullptr) throw RuntimeError("cannot evaluate non block with parameters");
 
         // set parameters in body's environment
-        SymbolTable *env;
-        try {
-            env = SymbolTable::getTable(body);
-        } catch (RuntimeError &) {
-            env = new SymbolTable(environment, body);
-        }
+        auto *env = new SymbolTable(environment, body);
+
         if (body->conditions.size() == 1) {
             parameters->accept(this);
             env->set(body->conditions[0], returnBucket);
@@ -377,5 +372,11 @@ void Fern::Interpreter::visitEvaluator(Fern::Evaluator *node) {
         }
         // evaluate body
         body->accept(this);
+        SymbolTable::deregisterTable(body);
     }
+}
+
+bool Fern::Interpreter::evaluateCondition(Fern::Reference &condition) {
+    if (!holds_alternative<FernType>(condition)) throw RuntimeError("condition must be a literal");
+    return get<FernType>(condition).truthValue();
 }

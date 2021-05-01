@@ -25,7 +25,15 @@ void Fern::ASTPrinter::visitBlock(Fern::Block *node) {
 void Fern::ASTPrinter::visitEvaluator(Fern::Evaluator *node) {
     output() << "Evaluator\n";
     output() << "--BODY--\n";
-    visitAllChildren(node);
+    indent++;
+    node->children[0]->accept(this);
+    indent--;
+    output() << "--ARGUMENTS--\n";
+    indent++;
+    for (int i = 1; i < node->children.size(); ++i) {
+        node->children[i]->accept(this);
+    }
+    indent--;
 }
 
 void Fern::ASTPrinter::visitBinary(Fern::Binary *node) {

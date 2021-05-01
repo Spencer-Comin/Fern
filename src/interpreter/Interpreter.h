@@ -38,6 +38,8 @@ namespace Fern {
 
         void decide(Reference &condition, Reference& if_body, Reference& else_body);
 
+        static bool evaluateCondition(Reference &condition);
+
         SymbolTable *environment = new SymbolTable(nullptr, nullptr);
 
         SymbolTable *global = environment;

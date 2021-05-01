@@ -29,7 +29,8 @@ Fern::Boolean Fern::Reference::tripleEqual(const Fern::Reference &right) {
 
 Fern::SymbolTable::SymbolTable(Fern::SymbolTable *parent, Fern::Block *scope) {
     this->parent = parent;
-    directory[scope] = this;
+    directory[scope].push(this);
+
 }
 
 void Fern::SymbolTable::set(string &name, Fern::Reference &value) {
@@ -48,9 +49,16 @@ Fern::Reference &Fern::SymbolTable::get(string &name) {
 
 Fern::SymbolTable *Fern::SymbolTable::getTable(Fern::Block *scope) {
     if (directory.find(scope) != directory.end())
-        return directory.at(scope);
-    else
-        throw Fern::RuntimeError("Cannot find an associated Symbol Table for given scope");
+        return directory.at(scope).top();
+    else throw Fern::RuntimeError("Cannot find an associated Symbol Table for given scope");
+}
+
+void Fern::SymbolTable::deregisterTable(Fern::Block *scope) {
+    if (directory.find(scope) != directory.end()) {
+        delete directory[scope].top();
+        directory[scope].pop();
+    }
+    else throw Fern::RuntimeError("Cannot find an associated Symbol Table for given scope");
 }
 
 
