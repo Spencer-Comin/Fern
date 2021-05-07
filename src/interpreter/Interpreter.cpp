@@ -57,30 +57,6 @@ void Fern::Interpreter::visitBlock(Fern::Block *node) {
     environment = parent;
 }
 
-void
-Fern::Interpreter::decide(Fern::Reference &condition_body, Reference &if_body, Reference &else_body) {
-    bool condition = std::visit(overload{
-            [this](ASTNode *node) -> bool {
-                node->accept(this);
-                return get<FernType>(returnBucket).truthValue();
-            },
-            [](FernType &literal) -> bool { return literal.truthValue(); },
-            [](auto &&) -> bool { throw DebugError("bad condition reference in decision"); }
-    }, condition_body);
-    if (condition) {
-        std::visit(overload{
-                [this](ASTNode *node) { node->accept(this); },
-                [this](FernType &literal) { returnBucket = literal; },
-                [](auto &&) { throw DebugError("bad if body reference in decision"); }
-        }, if_body);
-    } else
-        std::visit(overload{
-                [this](ASTNode *node) { node->accept(this); },
-                [this](FernType &literal) { returnBucket = literal; },
-                [](auto &&) { throw DebugError("bad else body reference in decision"); }
-        }, else_body);
-}
-
 static inline bool isCxxOp(Fern::Operator op) {
     switch (op) {
         case Fern::Operator::AND:

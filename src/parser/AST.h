@@ -73,6 +73,8 @@ namespace Fern {
     public:
         explicit Block(ASTNode *list);
 
+        Block() = default;
+
         void accept(ASTVisitor *visitor) override;
     };
 

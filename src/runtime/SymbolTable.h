@@ -65,7 +65,7 @@ namespace Fern {
 
         static SymbolTable *getTable(Block *scope);
 
-        static void deregisterTable(Block *scope);
+        [[maybe_unused]] static void deregisterTable(Block *scope);
 
     private:
         static inline unordered_map<Block *, stack<SymbolTable *>> directory{};

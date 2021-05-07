@@ -5,10 +5,13 @@
 #include "SymbolTable.h"
 #include "errors.h"
 #include <queue>
+#include <variant>
 
 const Fern::NullReference &Fern::null{};
 
 Fern::Boolean Fern::Reference::tilde(const Fern::Reference &right) {
+    if (!std::holds_alternative<ASTNode*>(right) || !std::holds_alternative<ASTNode*>(*this))
+        throw RuntimeError("~ can only be used with nodes");
     // search dependencies of fernNode for target
     ASTNode *current, *target = std::get<ASTNode *>(right);
     std::queue<ASTNode *> q{};
@@ -57,8 +60,7 @@ void Fern::SymbolTable::deregisterTable(Fern::Block *scope) {
     if (directory.find(scope) != directory.end()) {
         delete directory[scope].top();
         directory[scope].pop();
-    }
-    else throw Fern::RuntimeError("Cannot find an associated Symbol Table for given scope");
+    } else throw Fern::RuntimeError("Cannot find an associated Symbol Table for given scope");
 }
 
 

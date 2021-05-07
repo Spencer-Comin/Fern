@@ -13,12 +13,12 @@ using std::ostream;
 using std::istream;
 
 namespace Fern::Builtins {
-        class Output : public ID {
+        class Output : public Block {
             ostream &out;
             explicit Output(ostream&);
         };
 
-        class Input : public ID {
+        class Input : public Block {
             istream &in;
             explicit Input(istream&);
         };

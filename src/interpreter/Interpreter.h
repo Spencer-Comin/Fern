@@ -36,8 +36,6 @@ namespace Fern {
 
         void visitID(ID *node) override;
 
-        void decide(Reference &condition, Reference& if_body, Reference& else_body);
-
         static bool evaluateCondition(Reference &condition);
 
         SymbolTable *environment = new SymbolTable(nullptr, nullptr);

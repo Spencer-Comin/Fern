@@ -4,13 +4,13 @@ a := #moose, tag# [b] { return = b > 1; };
 `tag @ a && `moose @ a && a(2);
 */
 /*
-a := 1, 2, 3, 4, 5, 6;
+a := 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14;
 sum = 0;
 incrementer := [i] { #global# sum = sum + i; };
 incrementer over a;
 sum;
 */
-
+/*
 fibonacci := [n] {
     return =
         if n == 1 then
@@ -21,4 +21,5 @@ fibonacci := [n] {
             fibonacci(n - 1) + fibonacci(n - 2)
     ;
 };
-fibonacci(80);
+fibonacci(15);
+*/
