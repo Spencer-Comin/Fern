@@ -1,0 +1,15 @@
+[(End) -> IO] debug;
+
+[(IO, Int8) -> IO] putInt8;
+[(IO, Int16) -> IO] putInt16;
+[(IO, Int32) -> IO] putInt32;
+[(IO, Int64) -> IO] putInt64;
+
+[(IO, UInt8) -> IO] putUInt8;
+[(IO, UInt16) -> IO] putUInt16;
+[(IO, UInt32) -> IO] putUInt32;
+[(IO, UInt64) -> IO] putUInt64;
+
+[(IO, Float32) -> IO] putFloat32;
+[(IO, Float64) -> IO] putFloat64;
+[(IO, Float128) -> IO] putFloat128;

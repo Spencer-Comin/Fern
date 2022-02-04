@@ -11,6 +11,7 @@
 % base types
 type("Number").
 type("End").  % terminal category (maybe rename?)
+type("IO").  % currently equivalent to &End (void*)
 type("Bool").
 type("Reference").
 
@@ -102,6 +103,7 @@ fits_in(X, Y) :- bitwidth(X, SX), bitwidth(Y, SY), SX =< SY.
 
 %% TYPE INFERENCE
 decompose(T, 1, [T]).
+decompose("End", 0, []).
 decompose(typeproduct(Xs), N, Xs) :- length(Xs, N).
 
 % supports(Type, Operation)

@@ -27,8 +27,9 @@ include(AddLLVM)
 llvm_map_components_to_libnames(LLVM_LIBS core orcjit native)
 
 set(CODEGEN_SOURCES codegen/interface.cpp codegen/codegen.cpp semantics/typehandler.cpp)
+set(RUNTIME_SOURCES runtime/builtins.cpp)
 
-add_library(codegen SHARED ${CODEGEN_SOURCES})
+add_library(codegen SHARED ${CODEGEN_SOURCES} ${RUNTIME_SOURCES})
 
 set_target_properties(codegen PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/codegen)

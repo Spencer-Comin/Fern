@@ -14,6 +14,7 @@ void TypeHandler::set_context(LLVMContext *ctx) {
 	typedefs["Byte"] = IntegerType::getInt8Ty(*ctx);
 	typedefs["Bool"] = IntegerType::getInt1Ty(*ctx);
 
+    typedefs["IO"] = Type::getInt8PtrTy(*ctx);
     typedefs["End"] = Type::getVoidTy(*ctx);
 }
 
