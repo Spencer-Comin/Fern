@@ -87,6 +87,13 @@ typecheck(Assigns, Typedefs,
     AnnotatedThen = typed(_, Type),
     AnnotatedElse = typed(_, Type).
 
+typecheck(Assigns, _Typedefs,
+          import(_, Name),
+          typed(declare(Name), Type)) :-
+    get_assoc(Name, Assigns, Type).
+
+% resolvers
+
 resolve_typedef(Type, Typedefs, BaseType) :-
     get_assoc(Type, Typedefs, LowerType) ->
     resolve_typedef(LowerType, Typedefs, BaseType);

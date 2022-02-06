@@ -17,6 +17,9 @@
 jit(typed(def(Name, function(Params, Body)), T)) :-
     generate(typed(def(Name, function(Params, Body)), T), _).
 
+jit(typed(declare(Name), T)) :-
+    generate(typed(declare(Name), T), _, _).
+
 jit(typed(Expression, T)) :-
     jit(typed(def("__anon_expr", function([], typed(Expression, T))), morphism("End", T))),
     jit_call("__anon_expr"), !.
@@ -28,9 +31,12 @@ llvm_print(typed(def(Name, function(Params, Body)), T)) :-
     generate(typed(def(Name, function(Params, Body)), T), Node),
     print_function(Node), !.
 
-llvm_print(Expression) :-
-    generate(Expression, Node),
-    print_expression(Node), nl.
+llvm_print(typed(declare(Name), T)) :-
+    generate(typed(declare(Name), T), _, Node),
+    print_function(Node), !.
+
+llvm_print(typed(Expression, T)) :-
+    llvm_print(typed(def("__anon_expr", function([], typed(Expression, T))), morphism("End", T))).
 
 llvm_type_print(T) :-
     typegen(T, LLVM_T),
@@ -104,6 +110,10 @@ generate(typed(if(Cond, Then, Else), _), ArgValues, Node) :-
     codegen_start_if_else(ElseBlock, MergeBlock, ThenBlock),
     generate(Else, ArgValues, ElseNode),
     codegen_if_merge(MergeBlock, ThenBlock, ThenNode, ElseNode, Node).
+
+generate(typed(declare(Name), T), _ArgValues, Node) :- % add nullptr node?
+    typegen(T, LLVM_T),
+    codegen_declaration(Name, LLVM_T, Node).
 
 generate_(ArgValues, AST, Node) :- generate(AST, ArgValues, Node).
 

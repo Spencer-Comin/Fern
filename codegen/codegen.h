@@ -81,7 +81,9 @@ public:
 	Function *generate_func_head(std::string name, std::vector<std::string> params);
 	Function *generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft);
 	void generate_func_body(Function *func, Value *body);
-	
+
+	Function *generate_func_declaration(std::string name, FunctionType *ft);
+
 	void jit_current_module();  // TODO: return new module & context
 	void jit_call(std::string name);  // TODO: add support for args?
 };

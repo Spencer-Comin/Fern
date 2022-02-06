@@ -126,12 +126,6 @@ tokenize([0'., 0'., 0'.|T_i], [ellipsis_t(LineNo)|T_o], LineNo) :- !, tokenize(T
 tokenize([0'…|T_i], [ellipsis_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
 tokenize([0'.|T_i], [dot_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
 
-% throw lexical error for anything else
-tokenize([BadCode|_], _, BadLine) :-
-    atom_codes(BadToken, [BadCode]),
-    format("Lexical Error on line ~d: Unexpected ~w~n", [BadLine, BadToken]),
-    throw(lexical_error(BadToken, BadLine)).
-
 % utilities
 consume_type([], _, [], []).
 consume_type([Char|In], Type, Remain, [Char|Out]) :-

@@ -188,6 +188,10 @@ void CodeGenerator::generate_func_body(Function *func, Value *body) {
 	}
 }
 
+Function *CodeGenerator::generate_func_declaration(std::string name, FunctionType *ft) {
+	return Function::Create(ft, Function::ExternalLinkage, name, TheModule.get());
+}
+
 void CodeGenerator::jit_current_module() {
 	ExitOnErr(TheJIT->addModule(
 		ThreadSafeModule(std::move(TheModule), std::move(TheContext))));
@@ -201,10 +205,8 @@ void CodeGenerator::jit_call(std::string name) {
 	InitializeModuleAndPassManager();
 
 	auto symbol = ExitOnErr(TheJIT->lookup(name));
-	// modify to allow other types
-	// or also just foreign import a C print function
-	double (*FP)() = (double (*)())(intptr_t)symbol.getAddress();
-	std::cerr << "Evaluated to " << FP() << std::endl;
+	void (*FP)() = (void (*)())(intptr_t)symbol.getAddress();
+	FP();
 
 	ExitOnErr(rt->remove());
 }

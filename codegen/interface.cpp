@@ -234,6 +234,16 @@ static foreign_t generate_func_body(term_t head, term_t body) {
 	PL_succeed;
 }
 
+static foreign_t generate_declaration(term_t name, term_t type, term_t node) {
+	char *name_ptr;
+	size_t len;
+	if (!PL_get_string(name, &name_ptr, &len))
+		PL_fail;
+	FunctionType *ft = term_to_pointer<FunctionType>(type);
+	Function *func = generator->generate_func_declaration(std::string(name_ptr), ft);
+	return PL_unify_pointer(node, static_cast<void *>(func));
+}
+
 static foreign_t jit_current_module() {
 	generator->jit_current_module();
 	PL_succeed;
@@ -392,7 +402,9 @@ extern "C" install_t install() {
 	PL_register_foreign("codegen_func_head", 3, reinterpret_cast<pl_function_t>(generate_func_head), 0);
 	PL_register_foreign("codegen_func_head", 5, reinterpret_cast<pl_function_t>(generate_func_head_typed), 0);
 	PL_register_foreign("codegen_func_body", 2, reinterpret_cast<pl_function_t>(generate_func_body), 0);
-	
+
+	PL_register_foreign("codegen_declaration", 3, reinterpret_cast<pl_function_t>(generate_declaration), 0);
+
 	PL_register_foreign("codegen_if_cond", 3, reinterpret_cast<pl_function_t>(generate_if_cond), 0);
 	PL_register_foreign("codegen_start_if_else", 3, reinterpret_cast<pl_function_t>(start_if_else), 0);
 	PL_register_foreign("codegen_if_merge", 5, reinterpret_cast<pl_function_t>(generate_if_merge), 0);

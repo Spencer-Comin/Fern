@@ -1,4 +1,4 @@
-:- module(parser, [parse/2, parse/3]).
+:- module(parser, [parse/2, parse/3, parse_type_info/2]).
 :- use_module(lexer).
 
 
@@ -9,12 +9,16 @@ parse(Tokens, AST) :-
 parse(Tokens, TypeInfo, AST) :-
     phrase(program(TypeInfo, AST), Tokens).
 
+parse_type_info(Tokens, TypeInfo) :-
+    phrase(type_statements(TypeInfo), Tokens).
+
 program(T, S) --> typeblock(T), statements(S), {!}.
 statements([S|T]) --> statement(S), statements(T).
 statements([]) --> [].
 
 statement(E) --> expression(E), [semicolon_t(_)].
 statement(D) --> definition(D).
+statement(I) --> import_name(I), [semicolon_t(_)].
 
 % TODO: add concatenation operator to build product objects
 expression(C) --> conditional(C).
@@ -58,18 +62,20 @@ def_object(E) --> expression(E).
 
 function(function(Params, Body)) --> [l_paren_t(_)], params(Params), [r_paren_t(_)], [arrow_t(_)], expression(Body).
 
-params([P|T]) --> param(P), params(T).
+params([P|T]) --> param(P), [comma_t(_)], params(T).
 params([P]) --> param(P).
 params([]) --> [].
 param(P) --> [identifier_t(P, _)].
 
 function_call(Name, Args) --> [identifier_t(Name, _)], [l_paren_t(_)], f_args(Args), [r_paren_t(_)].
 
-f_args([A|T]) --> f_arg(A), f_args(T).
+f_args([A|T]) --> f_arg(A), [comma_t(_)], f_args(T).
 f_args([A]) --> f_arg(A).
 f_args([]) --> [].
 f_arg(E) --> expression(E).
 
+import_name(import_chain([Namespace|Imports])) --> [identifier_t(Namespace, _)], [namespace_t(_)], import_name(import_chain(Imports)).
+import_name(import_chain([Name])) --> [identifier_t(Name, _)].
 
 % type stuff
 % typeblock(typeinfo(definitions(D), assignments(A))) --> [l_type_t(_)], type_definitions(D), type_assignments(A), [r_type_t(_)].
@@ -96,9 +102,8 @@ names([]) --> [].
 type_definition(typedef(Name, T)) --> [identifier_t(Name, _)], [walrus_t(_)], type_expression(T), [semicolon_t(_)].
 type_definition(typedef(F, T)) --> type_functor(F), [walrus_t(_)], type_expression(T), [semicolon_t(_)].
 
-% type operators (LOWEST TO HIGHEST PRECEDENCE) -> , | `product` *
-% TODO: change product operator to ,
-% TODO: change reference operator to &
+% type operators (LOWEST TO HIGHEST PRECEDENCE) -> & | , *
+% TODO: change reference precedence to be higher than product
 % TODO: change array operator to []
 
 type_expression(T) --> morphism(T).
@@ -106,13 +111,13 @@ type_expression(T) --> morphism(T).
 morphism(morphism(X, Y)) --> reference(X), [arrow_t(_)], morphism(Y).
 morphism(T) --> reference(T).
 
-reference(typeref(T)) --> [comma_t(_)], typesum(T).
+reference(typeref(T)) --> [and_t(_)], typesum(T).
 reference(T) --> typesum(T).
 
 typesum(typesum([P|U])) --> product(P), [bar_t(_)], reference(T), {T = typesum(U) ; dif(typesum(_), T), [T] = U}.
 typesum(P) --> product(P).
 
-product(typeproduct([A|T])) --> array(A), reference(P), {P = typeproduct(T) ; dif(P, typeproduct(_)), [P] = T}.
+product(typeproduct([A|T])) --> array(A), [comma_t(_)], reference(P), {P = typeproduct(T) ; dif(P, typeproduct(_)), [P] = T}.
 product(A) --> array(A).
 
 array(typeproduct(L)) --> type_primary(A), [star_t(_)], [literal_t(number(N), _)], {repeat(A, N, L)}.
