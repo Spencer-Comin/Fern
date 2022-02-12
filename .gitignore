@@ -1,4 +1,4 @@
 .vscode/
 build/
 codegen/libcodegen.*
-test.frn
+test*.frn
