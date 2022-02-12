@@ -2,7 +2,7 @@
     generate/2,
     llvm_print/1,
     jit/1,
-    reset_generator/0,
+    prep_codegen/0,
     llvm_type_print/1,
     typedef/2,
     type_assign/2
@@ -11,6 +11,9 @@
 :- use_foreign_library(foreign('codegen/libcodegen.dylib')).
 :- table typegen/2.
 :- discontiguous generate/2, generate/3.
+
+
+prep_codegen :- abolish_module_tables(codegen), reset_generator.
 
 % jit(+AST_Node)
 
