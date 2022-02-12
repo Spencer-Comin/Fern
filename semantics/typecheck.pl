@@ -60,8 +60,8 @@ typecheck(Assigns, Typedefs,
 typecheck(_Assigns, _Typedefs,
           literal(number(Num)),
           typed(literal(number(Num)), Type)) :-
-    bitwidth(Type, W),
-    msb(Num) < W.
+    bounds(Type, Min, Max),
+    Num =< Max, Num >= Min.
 
 typecheck(Assigns, _Typedefs,
           var(Name),

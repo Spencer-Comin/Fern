@@ -1,6 +1,7 @@
-:- module(types, [decompose/3, binary_type/4, bitwidth/2, subtype/2]).
+:- module(types, [decompose/3, binary_type/4, bounds/3, bitwidth/2, subtype/2]).
 :- discontiguous subtype/2.
 :- discontiguous bitwidth/2.
+:- discontiguous bounds/3.
 :- discontiguous type/1.
 :- discontiguous equivalent/2.
 :- table equivalent/2.
@@ -17,22 +18,22 @@ type("Reference").
 
 % derived types
 subtype("Int", "Number").
-subtype("Int8",  "Int"). bitwidth("Int8",  8).
-subtype("Int16", "Int"). bitwidth("Int16", 16).
-subtype("Int32", "Int"). bitwidth("Int32", 32).
-subtype("Int64", "Int"). bitwidth("Int64", 64).
+subtype("Int8",  "Int"). bitwidth("Int8",  8).  bounds("Int8",  -128, 127).
+subtype("Int16", "Int"). bitwidth("Int16", 16). bounds("Int16", -32768, 32767).
+subtype("Int32", "Int"). bitwidth("Int32", 32). bounds("Int32", -2147483648, 2147483647).
+subtype("Int64", "Int"). bitwidth("Int64", 64). bounds("Int64", -9223372036854775808, 9223372036854775807).
 
 subtype("UInt", "Int").
-subtype("UInt8",  "UInt"). bitwidth("UInt8",  8).
-subtype("UInt16", "UInt"). bitwidth("UInt16", 16).
-subtype("UInt32", "UInt"). bitwidth("UInt32", 32).
-subtype("UInt64", "UInt"). bitwidth("UInt64", 64).
+subtype("UInt8",  "UInt"). bitwidth("UInt8",  8).  bounds("UInt8",  0, 0xff).
+subtype("UInt16", "UInt"). bitwidth("UInt16", 16). bounds("UInt16", 0, 0xffff).
+subtype("UInt32", "UInt"). bitwidth("UInt32", 32). bounds("UInt32", 0, 0xffff_ffff).
+subtype("UInt64", "UInt"). bitwidth("UInt64", 64). bounds("UInt64", 0, 0xffff_ffff_ffff_ffff).
 
 subtype("Float", "Number").
-subtype("Float16",  "Float"). bitwidth("Float16",  16).
-subtype("Float32",  "Float"). bitwidth("Float32",  32).
-subtype("Float64",  "Float"). bitwidth("Float64",  64).
-subtype("Float128", "Float"). bitwidth("Float128", 128).
+subtype("Float16",  "Float"). bitwidth("Float16",  16).  bounds("Float16", -100, 100).
+subtype("Float32",  "Float"). bitwidth("Float32",  32).  bounds("Float32", -10000, 10000).
+subtype("Float64",  "Float"). bitwidth("Float64",  64).  bounds("Float64", -100000000, 100000000).
+subtype("Float128", "Float"). bitwidth("Float128", 128). bounds("Float128", -10000000000000000, 10000000000000000).
 
 equivalent("Byte", "UInt8").
 
