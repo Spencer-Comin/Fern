@@ -390,6 +390,29 @@ static foreign_t assign_type(term_t name, term_t type) {
 	PL_succeed;
 }
 
+// either +val -reference or -val +reference
+static foreign_t handle_reference(term_t val, term_t type, term_t reference) {
+	if (!PL_is_variable(val) && PL_is_variable(reference))
+	{ // +val -reference
+		Value *node = generator->generate_reference(term_to_pointer<Value>(val));
+		return PL_unify_pointer(reference, static_cast<void *>(node));
+	}
+	else if (PL_is_variable(val) && !PL_is_variable(reference))
+	{ // -val +reference
+		Value *node = generator->generate_dereference(term_to_pointer<Value>(reference), term_to_pointer<Type>(type));
+		return PL_unify_pointer(val, static_cast<void *>(node));
+	}
+	else
+	{
+		PL_fail;
+	}
+}
+
+static foreign_t generate_heap_copy(term_t val, term_t reference) {
+	Value *node = generator->generate_heap_copy(term_to_pointer<Value>(val));
+	return PL_unify_pointer(reference, static_cast<void *>(node));
+}
+
 extern "C" install_t install() {
 	PL_register_foreign("codegen_number", 2, reinterpret_cast<pl_function_t>(generate_number), 0);
 	PL_register_foreign("codegen_float", 2, reinterpret_cast<pl_function_t>(generate_float), 0);
@@ -408,6 +431,9 @@ extern "C" install_t install() {
 	PL_register_foreign("codegen_if_cond", 3, reinterpret_cast<pl_function_t>(generate_if_cond), 0);
 	PL_register_foreign("codegen_start_if_else", 3, reinterpret_cast<pl_function_t>(start_if_else), 0);
 	PL_register_foreign("codegen_if_merge", 5, reinterpret_cast<pl_function_t>(generate_if_merge), 0);
+
+	PL_register_foreign("codegen_reference", 3, reinterpret_cast<pl_function_t>(handle_reference), 0);
+	PL_register_foreign("codegen_heap_copy", 2, reinterpret_cast<pl_function_t>(generate_heap_copy), 0);
 
 	PL_register_foreign("build_type_product", 2, reinterpret_cast<pl_function_t>(build_type_product), 0);
 	PL_register_foreign("build_morphism", 3, reinterpret_cast<pl_function_t>(build_morphism), 0);

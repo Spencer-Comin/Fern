@@ -27,7 +27,7 @@ include(AddLLVM)
 llvm_map_components_to_libnames(LLVM_LIBS core orcjit native)
 
 set(CODEGEN_SOURCES codegen/interface.cpp codegen/codegen.cpp semantics/typehandler.cpp)
-set(RUNTIME_SOURCES runtime/builtins.cpp)
+set(RUNTIME_SOURCES runtime/std.cpp runtime/memory.cpp)
 
 add_library(codegen SHARED ${CODEGEN_SOURCES} ${RUNTIME_SOURCES})
 

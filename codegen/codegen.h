@@ -69,10 +69,13 @@ public:
 	Value *generate_float(double val);
 	Value *generate_int(unsigned bitwidth, long val, bool issigned);
 	Value *generate_var(std::string name);
-	// TODO: add generate_fbinary
 	Value *generate_binary(Value *left, Value *right, BinaryOp op);
 	Value *generate_fbinary(Value *left, Value *right, BinaryOp op);
 	Value *generate_func_call(std::string callee, std::vector<Value *> args);
+
+	Value *generate_reference(Value *val);
+	Value *generate_dereference(Value *val, Type *val_points_to);
+	Value *generate_heap_copy(Value *val);
 
 	std::pair<BasicBlock*, BasicBlock*> generate_if_cond(Value *condition); // returns else block, merge block
 	BasicBlock *start_if_else(BasicBlock *else_bb, BasicBlock *merge); // returns updated then block

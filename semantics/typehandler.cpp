@@ -30,7 +30,7 @@ void TypeHandler::assign_type(string name, Type *type) {
     type_assignments[name] = type;
 }
 
-Type *TypeHandler::build_morphism(Type *result, Type *param) {
+FunctionType *TypeHandler::build_morphism(Type *result, Type *param) {
     // probably need some rules about destructuring based on param type size...
     // check max number of args that can be passed to C function
     if (param->isVoidTy()) {

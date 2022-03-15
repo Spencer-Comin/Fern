@@ -34,6 +34,10 @@ void CodeGenerator::InitializeModuleAndPassManager() {
 	TheFPM->add(createReassociatePass());
 
 	TheFPM->doInitialization();
+
+	// add declarations for memory runtime functions
+	generate_func_declaration("heap_free", types.build_morphism(Type::getVoidTy(*TheContext), Type::getInt8PtrTy(*TheContext)));
+	generate_func_declaration("heap_allocate", types.build_morphism(Type::getInt8PtrTy(*TheContext), Type::getInt64PtrTy(*TheContext)));
 }
 
 Function *CodeGenerator::getFunction(std::string &name) {
@@ -146,7 +150,7 @@ Value *CodeGenerator::generate_func_call(std::string callee, std::vector<Value *
 	if (callee_f->arg_size() != args.size())
 		return log_error_value("Incorrect number of arguments passed");
 
-	return Builder->CreateCall(callee_f, args, "calltmp");
+	return Builder->CreateCall(callee_f, args, callee + "_res");
 }
 
 Function *CodeGenerator::generate_func_head(std::string name, std::vector<std::string> params) {
@@ -186,6 +190,52 @@ void CodeGenerator::generate_func_body(Function *func, Value *body) {
 	} else {
 		func->eraseFromParent();
 	}
+}
+
+Value *CodeGenerator::generate_reference(Value *val) {
+	// allocate space, do store
+	BasicBlock &entry = Builder->GetInsertBlock()->getParent()->getEntryBlock();
+	IRBuilder<> tmp(&entry, entry.begin());
+	AllocaInst *bucket = tmp.CreateAlloca(val->getType(), nullptr, "reftmp");
+	Builder->CreateStore(val, bucket);
+	return bucket;
+}
+
+Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
+	Value *val_as_int = Builder->CreateBitOrPointerCast(val, Type::getInt64Ty(*TheContext), "ptrtointtmp");
+	// mask last bit and dereference
+	Value *ptr = Builder->CreateAnd(val_as_int, ConstantInt::get(*TheContext, APInt(64, 0xffff'ffff'ffff'fffe)), "maskedptrtmp");
+	ptr = Builder->CreateBitOrPointerCast(ptr, val->getType(), "castmaskedptrtmp");
+	Value *deref = Builder->CreateLoad(val_points_to, ptr, "dereftmp");
+	// if last bit 1, heap free
+	Value *last_bit = Builder->CreateAnd(val_as_int, ConstantInt::get(*TheContext, APInt(64, 1)), "lastbittmp");
+	Function *func = Builder->GetInsertBlock()->getParent();
+	BasicBlock *heap_free_bb = BasicBlock::Create(*TheContext, "heapfree", func);
+	BasicBlock *merge_bb = BasicBlock::Create(*TheContext, "heapcont");
+	Builder->CreateCondBr(last_bit, heap_free_bb, merge_bb);
+	
+	Builder->SetInsertPoint(heap_free_bb);
+	ptr = Builder->CreatePointerCast(ptr, Type::getInt8PtrTy(*TheContext), "voidptrtmp");
+	generate_func_call("heap_free", {ptr});
+	
+	Builder->CreateBr(merge_bb);
+	func->getBasicBlockList().push_back(merge_bb);
+	Builder->SetInsertPoint(merge_bb);
+	return deref;
+}
+
+Value *CodeGenerator::generate_heap_copy(Value *val) {
+	Type *ptr_type = PointerType::get(val->getType(), 0);
+	Value *ptr = generate_func_call("heap_allocate", {
+		ConstantInt::get(Type::getInt64Ty(*TheContext),
+						 TheModule->getDataLayout().getTypeAllocSize(val->getType()))
+	});
+	ptr = Builder->CreatePointerCast(ptr, ptr_type, "heapaddresstmp");
+	Builder->CreateStore(val, ptr);
+	ptr = Builder->CreateBitOrPointerCast(ptr, Type::getInt64Ty(*TheContext), "ptrtointtmp");
+	ptr = Builder->CreateOr(ptr, ConstantInt::get(*TheContext, APInt(64, 1)), "maskedptrtmp");
+	ptr = Builder->CreateBitOrPointerCast(ptr, ptr_type, "maskedptr");
+	return ptr;
 }
 
 Function *CodeGenerator::generate_func_declaration(std::string name, FunctionType *ft) {

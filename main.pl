@@ -1,4 +1,4 @@
-:- module(main, [parse_fern_source/3, fern_compile/1]).
+:- module(main, [parse_fern_source/3, fern_run/1]).
 :- use_module(parsing/lexer).
 :- use_module(parsing/parser).
 :- use_module(codegen/codegen).
@@ -6,10 +6,11 @@
 :- use_module(semantics/imports).
 
 
-fern_compile(File) :-
+fern_run(File) :-
     parse_fern_source(File, TypedAST),
     prep_codegen,
-    maplist(jit, TypedAST).
+    maplist(compile, TypedAST),
+    jit_call("main").
 
 fern_ir(File) :-
     parse_fern_source(File, TypedAST),

@@ -25,7 +25,7 @@ public:
     Type *get_type(string name);
     void register_type(string name, Type *type);
     void assign_type(string name, Type *type);
-    Type *build_morphism(Type *result, Type *param);
+    FunctionType *build_morphism(Type *result, Type *param);
     Type *build_product(vector<Type *> members);
     Type *build_ref(Type *type);
 };

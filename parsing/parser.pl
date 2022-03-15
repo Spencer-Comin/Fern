@@ -108,17 +108,17 @@ type_definition(typedef(F, T)) --> type_functor(F), [walrus_t(_)], type_expressi
 
 type_expression(T) --> morphism(T).
 
-morphism(morphism(X, Y)) --> reference(X), [arrow_t(_)], morphism(Y).
-morphism(T) --> reference(T).
-
-reference(typeref(T)) --> [and_t(_)], typesum(T).
-reference(T) --> typesum(T).
+morphism(morphism(X, Y)) --> typesum(X), [arrow_t(_)], morphism(Y).
+morphism(T) --> typesum(T).
 
 typesum(typesum([P|U])) --> product(P), [bar_t(_)], reference(T), {T = typesum(U) ; dif(typesum(_), T), [T] = U}.
 typesum(P) --> product(P).
 
-product(typeproduct([A|T])) --> array(A), [comma_t(_)], reference(P), {P = typeproduct(T) ; dif(P, typeproduct(_)), [P] = T}.
-product(A) --> array(A).
+product(typeproduct([A|T])) --> reference(A), [comma_t(_)], reference(P), {P = typeproduct(T) ; dif(P, typeproduct(_)), [P] = T}.
+product(A) --> reference(A).
+
+reference(typeref(T)) --> [and_t(_)], array(T).
+reference(T) --> array(T).
 
 array(typeproduct(L)) --> type_primary(A), [star_t(_)], [literal_t(number(N), _)], {repeat(A, N, L)}.
 array(T) --> type_primary(T).
