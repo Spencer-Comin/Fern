@@ -9,10 +9,10 @@ enable_testing()
 
 # SWI-Prolog setup
 find_library(SWIPL_LIB swipl
-             HINTS "/usr/local/Cellar/swi-prolog/8.4.1/libexec/lib/swipl/lib/x86_64-darwin"
+             HINTS "/usr/local/Cellar/swi-prolog/8.4.2/libexec/lib/swipl/lib/x86_64-darwin"
              REQUIRED)
-set(SWIPL_DIR "/usr/local/Cellar/swi-prolog/8.4.1/libexec/lib/cmake/swipl")
-set(SWIPL_INCLUDE_DIRS "/usr/local/Cellar/swi-prolog/8.4.1/libexec/lib/swipl/include")
+set(SWIPL_DIR "/usr/local/Cellar/swi-prolog/8.4.2/libexec/lib/cmake/swipl")
+set(SWIPL_INCLUDE_DIRS "/usr/local/Cellar/swi-prolog/8.4.2/libexec/lib/swipl/include")
 find_package(SWIPL REQUIRED CONFIG)
 
 # LLVM setup
