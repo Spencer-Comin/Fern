@@ -81,12 +81,12 @@ Value *CodeGenerator::generate_fbinary(Value *left, Value *right, BinaryOp op) {
 		return nullptr;
 
 	switch (op) {
-	case ADD: return Builder->CreateFAdd(left, right, "addtmp");
-	case SUB: return Builder->CreateFSub(left, right, "subtmp");
-	case MUL: return Builder->CreateFMul(left, right, "multmp");
-	case DIV: return Builder->CreateFDiv(left, right, "divtmp");
-	case LT: return Builder->CreateFCmpULT(left, right, "lttmp");
-	case GT: return Builder->CreateFCmpUGT(left, right, "gttmp");
+	case ADD: return Builder->CreateFAdd(left, right, "sum");
+	case SUB: return Builder->CreateFSub(left, right, "diff");
+	case MUL: return Builder->CreateFMul(left, right, "prod");
+	case DIV: return Builder->CreateFDiv(left, right, "quot");
+	case LT: return Builder->CreateFCmpULT(left, right, "is_lt");
+	case GT: return Builder->CreateFCmpUGT(left, right, "is_gt");
 
 	default:
 		return log_error_value("invalid binary operator");
@@ -98,12 +98,12 @@ Value *CodeGenerator::generate_binary(Value *left, Value *right, BinaryOp op) {
 		return nullptr;
 
 	switch (op) {
-	case ADD: return Builder->CreateAdd(left, right, "addtmp");
-	case SUB: return Builder->CreateSub(left, right, "subtmp");
-	case MUL: return Builder->CreateMul(left, right, "multmp");
-	case DIV: return Builder->CreateSDiv(left, right, "divtmp");
-	case LT: return Builder->CreateICmpULT(left, right, "lttmp");
-	case GT: return Builder->CreateICmpUGT(left, right, "gttmp");
+	case ADD: return Builder->CreateAdd(left, right, "sum");
+	case SUB: return Builder->CreateSub(left, right, "diff");
+	case MUL: return Builder->CreateMul(left, right, "prod");
+	case DIV: return Builder->CreateSDiv(left, right, "quot");
+	case LT: return Builder->CreateICmpULT(left, right, "is_lt");
+	case GT: return Builder->CreateICmpUGT(left, right, "is_gt");
 
 	default:
 		return log_error_value("invalid binary operator");
@@ -138,7 +138,7 @@ PHINode *CodeGenerator::generate_if_merge(BasicBlock *merge, BasicBlock *then_bb
 	Function *func = Builder->GetInsertBlock()->getParent();
 	func->getBasicBlockList().push_back(merge);
 	Builder->SetInsertPoint(merge);
-	PHINode *pn = Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, "iftmp");
+	PHINode *pn = Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, "end_if_phi");
 	pn->addIncoming(then_v, then_bb);
 	pn->addIncoming(else_v, else_bb);
 	return pn;
@@ -196,26 +196,26 @@ Value *CodeGenerator::generate_reference(Value *val) {
 	// allocate space, do store
 	BasicBlock &entry = Builder->GetInsertBlock()->getParent()->getEntryBlock();
 	IRBuilder<> tmp(&entry, entry.begin());
-	AllocaInst *bucket = tmp.CreateAlloca(val->getType(), nullptr, "reftmp");
+	AllocaInst *bucket = tmp.CreateAlloca(val->getType(), nullptr, val->getName() + "_ref");
 	Builder->CreateStore(val, bucket);
 	return bucket;
 }
 
 Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
-	Value *val_as_int = Builder->CreateBitOrPointerCast(val, Type::getInt64Ty(*TheContext), "ptrtointtmp");
+	Value *val_as_int = Builder->CreateBitOrPointerCast(val, Type::getInt64Ty(*TheContext), val->getName() + "_as_int");
 	// mask last bit and dereference
-	Value *ptr = Builder->CreateAnd(val_as_int, ConstantInt::get(*TheContext, APInt(64, 0xffff'ffff'ffff'fffe)), "maskedptrtmp");
-	ptr = Builder->CreateBitOrPointerCast(ptr, val->getType(), "castmaskedptrtmp");
-	Value *deref = Builder->CreateLoad(val_points_to, ptr, "dereftmp");
+	Value *ptr = Builder->CreateAnd(val_as_int, ConstantInt::get(*TheContext, APInt(64, 0xffff'ffff'ffff'fffe)), val->getName() + "_as_int_masked");
+	ptr = Builder->CreateBitOrPointerCast(ptr, val->getType(), val->getName() + "_masked");
+	Value *deref = Builder->CreateLoad(val_points_to, ptr, val->getName() + "_deref");
 	// if last bit 1, heap free
-	Value *last_bit = Builder->CreateAnd(val_as_int, ConstantInt::get(*TheContext, APInt(64, 1)), "lastbittmp");
+	Value *last_bit = Builder->CreateAnd(val_as_int, ConstantInt::get(*TheContext, APInt(64, 1)), val->getName() + "_last_bit");
 	Function *func = Builder->GetInsertBlock()->getParent();
 	BasicBlock *heap_free_bb = BasicBlock::Create(*TheContext, "heapfree", func);
 	BasicBlock *merge_bb = BasicBlock::Create(*TheContext, "heapcont");
 	Builder->CreateCondBr(last_bit, heap_free_bb, merge_bb);
 	
 	Builder->SetInsertPoint(heap_free_bb);
-	ptr = Builder->CreatePointerCast(ptr, Type::getInt8PtrTy(*TheContext), "voidptrtmp");
+	ptr = Builder->CreatePointerCast(ptr, Type::getInt8PtrTy(*TheContext), val->getName() + "_as_void_ptr");
 	generate_func_call("heap_free", {ptr});
 	
 	Builder->CreateBr(merge_bb);
@@ -230,11 +230,11 @@ Value *CodeGenerator::generate_heap_copy(Value *val) {
 		ConstantInt::get(Type::getInt64Ty(*TheContext),
 						 TheModule->getDataLayout().getTypeAllocSize(val->getType()))
 	});
-	ptr = Builder->CreatePointerCast(ptr, ptr_type, "heapaddresstmp");
+	ptr = Builder->CreatePointerCast(ptr, ptr_type, "heap_addr");
 	Builder->CreateStore(val, ptr);
-	ptr = Builder->CreateBitOrPointerCast(ptr, Type::getInt64Ty(*TheContext), "ptrtointtmp");
-	ptr = Builder->CreateOr(ptr, ConstantInt::get(*TheContext, APInt(64, 1)), "maskedptrtmp");
-	ptr = Builder->CreateBitOrPointerCast(ptr, ptr_type, "maskedptr");
+	ptr = Builder->CreateBitOrPointerCast(ptr, Type::getInt64Ty(*TheContext), "heap_addr_as_int");
+	ptr = Builder->CreateOr(ptr, ConstantInt::get(*TheContext, APInt(64, 1)), "heap_addr_as_int_masked");
+	ptr = Builder->CreateBitOrPointerCast(ptr, ptr_type, val->getName() + "_ref");
 	return ptr;
 }
 
