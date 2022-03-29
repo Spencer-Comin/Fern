@@ -99,8 +99,8 @@ names([]) --> [].
 % type_definitions([H|T]) --> type_definition(H), type_definitions(T).
 % type_definitions([]) --> [].
 
-type_definition(typedef(Name, T)) --> [identifier_t(Name, _)], [walrus_t(_)], type_expression(T), [semicolon_t(_)].
-type_definition(typedef(F, T)) --> type_functor(F), [walrus_t(_)], type_expression(T), [semicolon_t(_)].
+type_definition(typedef(Name, T)) --> [identifier_t(Name, _)], [walrus_t(_)], type_expression(T), [semicolon_t(_)],
+                                      {throw(unsupported_error("Typedefs not supported yet"))}.
 
 % type operators (LOWEST TO HIGHEST PRECEDENCE) -> & | , *
 % TODO: change reference precedence to be higher than product
@@ -126,10 +126,6 @@ array(T) --> type_primary(T).
 type_primary(T) --> [identifier_t(T, _)].
 type_primary(annotated(T, Ann)) --> [identifier_t(T, _)], [colon_t(_)], [identifier_t(Ann, _)].
 type_primary(T) --> [l_paren_t(_)], type_expression(T), [r_paren_t(_)].
-type_primary(T) --> type_functor(T).
-
-% type_functor(functor(Name, Args)) --> [identifier_t(Name, _)], [l_paren_t(_)], type_expression(Args), [r_paren_t(_)].
-type_functor(functor(Name, Arg)) --> [identifier_t(Name, _)], [l_curly_t(_)], [identifier_t(Arg, _)], [r_curly_t(_)].
 
 % helpers
 repeat(_Value, 0, []).

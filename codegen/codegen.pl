@@ -5,7 +5,6 @@
     jit_call/1,
     prep_codegen/0,
     llvm_type_print/1,
-    typedef/2,
     type_assign/2
 ]).
 :- use_module('../semantics/types').
@@ -129,10 +128,6 @@ typegen(T, LLVM_T) :-
     % fix this
     string(T),
     get_llvm_type(T, LLVM_T).
-
-typedef(Name, Type) :-
-    typegen(Type, LLVM_T),
-    set_llvm_type(Name, LLVM_T).
 
 type_assign(Name, Type) :-
     typegen(Type, LLVM_T),
