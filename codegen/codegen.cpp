@@ -144,42 +144,40 @@ PHINode *CodeGenerator::generate_if_merge(BasicBlock *merge, BasicBlock *then_bb
 	return pn;
 }
 
-Value *CodeGenerator::generate_func_call(std::string callee, std::vector<Value *> args) {
+Value *CodeGenerator::generate_func_call(std::string callee, Value *arg) {
 	Function *callee_f = getFunction(callee);
-
-	if (callee_f->arg_size() != args.size())
-		return log_error_value("Incorrect number of arguments passed");
-
-	return Builder->CreateCall(callee_f, args, callee + "_res");
+	std::vector<Value *> args{};
+	if (arg)
+		args.push_back(arg);
+	return Builder->CreateCall(callee_f, args, callee + "_res");	
 }
 
-Function *CodeGenerator::generate_func_head(std::string name, std::vector<std::string> params) {
-	std::vector<Type *> doubles(params.size(), Type::getDoubleTy(*TheContext));
-	FunctionType *ft = FunctionType::get(Type::getDoubleTy(*TheContext), doubles, false);
+std::pair<Function *, std::vector<Value *>> CodeGenerator::generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft) {
 	Function *func = Function::Create(ft, Function::ExternalLinkage, name, TheModule.get());
 
 	BasicBlock *bb = BasicBlock::Create(*TheContext, "entry", func);
 	Builder->SetInsertPoint(bb);
-	
-	unsigned i = 0;
-	std::string *param_name;
-	NamedValues.clear();
-	for (auto &param : func->args()) {
-		param_name = &params[i++];
-		param.setName(*param_name);
-		NamedValues[*param_name] = &param;
+	std::vector<Value *> args{};
+
+	if (params.size() == 1) {
+		func->arg_begin()->setName(params[0]);
+		NamedValues[params[0]] = func->arg_begin();
+		args.push_back(func->arg_begin());
+	} else if (params.size() > 1) {
+		// destructure param
+		Value *arg_ptr = generate_reference(func->arg_begin());
+		Type *param_type = ft->getParamType(0);
+		assert(param_type->isStructTy());
+		Value *ptr, *arg;
+		for (unsigned i = 0; i < params.size(); i++) {
+			ptr = Builder->CreateStructGEP(param_type, arg_ptr, i, "component");
+			arg = Builder->CreateLoad(param_type->getContainedType(i), ptr, params[i]);
+			NamedValues[params[i]] = arg;
+			args.push_back(arg);
+		}
 	}
 
-	return func;
-}
-
-Function *CodeGenerator::generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft) {
-	Function *func = Function::Create(ft, Function::ExternalLinkage, name, TheModule.get());
-
-	BasicBlock *bb = BasicBlock::Create(*TheContext, "entry", func);
-	Builder->SetInsertPoint(bb);
-
-	return func;
+	return {func, args};
 }
 
 void CodeGenerator::generate_func_body(Function *func, Value *body) {
@@ -216,7 +214,7 @@ Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
 	
 	Builder->SetInsertPoint(heap_free_bb);
 	ptr = Builder->CreatePointerCast(ptr, Type::getInt8PtrTy(*TheContext), val->getName() + "_as_void_ptr");
-	generate_func_call("heap_free", {ptr});
+	generate_func_call("heap_free", ptr);
 	
 	Builder->CreateBr(merge_bb);
 	func->getBasicBlockList().push_back(merge_bb);
@@ -226,10 +224,10 @@ Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
 
 Value *CodeGenerator::generate_heap_copy(Value *val) {
 	Type *ptr_type = PointerType::get(val->getType(), 0);
-	Value *ptr = generate_func_call("heap_allocate", {
+	Value *ptr = generate_func_call("heap_allocate",
 		ConstantInt::get(Type::getInt64Ty(*TheContext),
 						 TheModule->getDataLayout().getTypeAllocSize(val->getType()))
-	});
+	);
 	ptr = Builder->CreatePointerCast(ptr, ptr_type, "heap_addr");
 	Builder->CreateStore(val, ptr);
 	ptr = Builder->CreateBitOrPointerCast(ptr, Type::getInt64Ty(*TheContext), "heap_addr_as_int");
@@ -240,6 +238,19 @@ Value *CodeGenerator::generate_heap_copy(Value *val) {
 
 Function *CodeGenerator::generate_func_declaration(std::string name, FunctionType *ft) {
 	return Function::Create(ft, Function::ExternalLinkage, name, TheModule.get());
+}
+
+Value *CodeGenerator::generate_struct(std::vector<Value *> components, StructType *type) {
+	BasicBlock &entry = Builder->GetInsertBlock()->getParent()->getEntryBlock();
+	IRBuilder<> tmp(&entry, entry.begin());
+	AllocaInst *struct_ptr = tmp.CreateAlloca(type, nullptr, "structure_ptr");
+	Value *ptr;
+	for (unsigned i = 0; i < components.size(); i++) {
+		ptr = Builder->CreateStructGEP(type, struct_ptr, i, "component");
+		Builder->CreateStore(components[i], ptr);
+	}
+	Value *structure = Builder->CreateLoad(type, struct_ptr, "structure");
+	return structure;
 }
 
 void CodeGenerator::jit_current_module() {

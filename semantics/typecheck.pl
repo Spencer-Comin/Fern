@@ -19,26 +19,48 @@ typecheck(typeinfo(TypeStatements), AST, AnnotatedAST) :-
 
 % TODO: fix pointer type checking
 
-% def
+% def (multiple params)
 typecheck(Assigns,
           def(Name, function(Params, Body)),
           typed(def(Name, function(Params, ResolvedBody)), Type)) :-
-    
+    length(Params, L), L > 1,
     get_assoc(Name, Assigns, Type),
     Type = morphism(SourceType, TargetType),
-    length(Params, ParamCount),
-    decompose(SourceType, ParamCount, ParamTypes),
-    foldl(assign_type, ParamTypes, Params, Assigns, AugmentedAssigns),
+    (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
+    foldl(assign_type, SourceTypes, Params, Assigns, AugmentedAssigns),
     typecheck(AugmentedAssigns, Body, AnnotatedBody),
     resolve_pointers(AnnotatedBody, TargetType, PartialResolvedBody),
     (resolve_heap_copy(PartialResolvedBody, ResolvedBody)
         ; ResolvedBody = PartialResolvedBody).
 
+% def (single param)
 typecheck(Assigns,
-          def(Name, Expression),
-          typed(def(Name, AnnotatedExpression), Type)) :-
+          def(Name, function([Param], Body)),
+          typed(def(Name, function([Param], ResolvedBody)), Type)) :-
     get_assoc(Name, Assigns, Type),
-    typecheck(Assigns, Expression, AnnotatedExpression).
+    Type = morphism(SourceType, TargetType),
+    assign_type(SourceType, Param, Assigns, AugmentedAssigns),
+    typecheck(AugmentedAssigns, Body, AnnotatedBody),
+    resolve_pointers(AnnotatedBody, TargetType, PartialResolvedBody),
+    (resolve_heap_copy(PartialResolvedBody, ResolvedBody)
+        ; ResolvedBody = PartialResolvedBody).
+
+% def (no param)
+typecheck(Assigns,
+          def(Name, function([], Body)),
+          typed(def(Name, function([], ResolvedBody)), Type)) :-
+    get_assoc(Name, Assigns, Type),
+    Type = morphism("End", TargetType),
+    typecheck(Assigns, Body, AnnotatedBody),
+    resolve_pointers(AnnotatedBody, TargetType, PartialResolvedBody),
+    resolve_heap_copy(PartialResolvedBody, ResolvedBody).
+
+% struct
+typecheck(Assigns,
+          struct(Expressions),
+          typed(struct(TypedExpressions), typeproduct(Types))) :-
+    maplist(typecheck(Assigns), Expressions, TypedExpressions),
+    maplist(arg(2), TypedExpressions, Types).
 
 % binary
 % TODO: add case for pointer arithmetic
@@ -59,21 +81,40 @@ typecheck(_Assigns,
     bounds(Type, Min, Max),
     Num =< Max, Num >= Min.
 
+typecheck(_Assigns,
+          literal(nil),
+          typed(literal(nil), "End")).
+
 % var
 typecheck(Assigns,
           var(Name),
           typed(var(Name), Type)) :-
     get_assoc(Name, Assigns, Type).
 
-% call
+% call (multiple arguments)
 typecheck(Assigns,
-          call(Name, Args),
-          typed(call(Name, ResolvedArgs), TargetType)) :- 
+          call(Name, Arg),
+          typed(call(Name, ResolvedArg), TargetType)) :- 
+    Arg = struct(_),
     get_assoc(Name, Assigns, morphism(SourceType, TargetType)),
-    maplist(typecheck(Assigns), Args, AnnotatedArgs),
-    length(Args, ArgCount),    
-    decompose(SourceType, ArgCount, SourceTypes),
-    maplist(resolve_pointers, AnnotatedArgs, SourceTypes, ResolvedArgs).
+    (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
+    % typecheck the struct argument and children
+    typecheck(Assigns, Arg, typed(struct(AnnotatedArgs), _)),
+    % resolve pointers on each individual child of the struct and recompose
+    maplist(resolve_pointers, AnnotatedArgs, SourceTypes, ResolvedArgs),
+    maplist(arg(2), ResolvedArgs, ResolvedTypes),
+    AnnotatedArg = typed(struct(ResolvedArgs), typeproduct(ResolvedTypes)),
+    % resolve pointer on recomposed struct
+    resolve_pointers(AnnotatedArg, SourceType, ResolvedArg).
+
+% call (single argument)
+typecheck(Assigns,
+          call(Name, Arg),
+          typed(call(Name, ResolvedArg), TargetType)) :-
+    Arg \= struct(_),
+    get_assoc(Name, Assigns, morphism(SourceType, TargetType)),
+    typecheck(Assigns, Arg, AnnotatedArg),
+    resolve_pointers(AnnotatedArg, SourceType, ResolvedArg).
 
 % if
 typecheck(Assigns,
@@ -103,3 +144,5 @@ resolve_pointers(typed(Node, typeref(T)), T, typed(dereference(typed(Node, typer
 
 % given referenced node that needs to be on heap, copy to heap
 resolve_heap_copy(typed(reference(N), T), typed(heap_copy(N), T)).
+% otherwise nothing needs to be done
+resolve_heap_copy(X, X) :- X \= typed(reference(_), _).

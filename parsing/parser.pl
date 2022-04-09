@@ -16,12 +16,13 @@ program(T, S) --> typeblock(T), statements(S), {!}.
 statements([S|T]) --> statement(S), statements(T).
 statements([]) --> [].
 
-statement(E) --> expression(E), [semicolon_t(_)].
-statement(D) --> definition(D).
 statement(I) --> import_name(I), [semicolon_t(_)].
+statement(D) --> definition(D).
 
-% TODO: add concatenation operator to build product objects
-expression(C) --> conditional(C).
+expression(C) --> struct(C).
+
+struct(struct([C|T])) --> conditional(C), [comma_t(_)], struct(P), {P = struct(T) ; dif(P, struct(_)), [P] = T}.
+struct(C) --> conditional(C).
 
 conditional(if(If, Then, Else)) --> comparison(If), conditional_centre(Then), conditional(Else).
 conditional(T) --> comparison(T).
@@ -50,7 +51,7 @@ mul_op(/) --> [divide_t(_)].
 
 primary(literal(number(Value))) --> [literal_t(number(Value), _)].
 primary(var(Name)) --> var(Name).
-primary(call(Name, Args)) --> function_call(Name, Args).
+primary(call(Name, Arg)) --> function_call(Name, Arg).
 primary(E) --> [l_paren_t(_)], expression(E), [r_paren_t(_)].
 
 var(Name) --> [identifier_t(Name, _)].
@@ -61,25 +62,25 @@ def_object(F) --> function(F).
 def_object(E) --> expression(E).
 
 function(function(Params, Body)) --> [l_paren_t(_)], params(Params), [r_paren_t(_)], [arrow_t(_)], expression(Body).
+function(function(Params, Body)) --> params(Params), [arrow_t(_)], expression(Body).
 
 params([P|T]) --> param(P), [comma_t(_)], params(T).
 params([P]) --> param(P).
 params([]) --> [].
 param(P) --> [identifier_t(P, _)].
 
-function_call(Name, Args) --> [identifier_t(Name, _)], [l_paren_t(_)], f_args(Args), [r_paren_t(_)].
+function_call(Name, E) --> [identifier_t(Name, _)], [l_paren_t(_)], expression(E), [r_paren_t(_)].
+function_call(Name, literal(nil)) --> [identifier_t(Name, _)], [l_paren_t(_)], [r_paren_t(_)].
 
-f_args([A|T]) --> f_arg(A), [comma_t(_)], f_args(T).
-f_args([A]) --> f_arg(A).
-f_args([]) --> [].
-f_arg(E) --> expression(E).
+% f_args([A|T]) --> f_arg(A), [comma_t(_)], f_args(T).
+% f_args([A]) --> f_arg(A).
+% f_args([]) --> [].
+% f_arg(E) --> expression(E).
 
 import_name(import_chain([Namespace|Imports])) --> [identifier_t(Namespace, _)], [namespace_t(_)], import_name(import_chain(Imports)).
 import_name(import_chain([Name])) --> [identifier_t(Name, _)].
 
 % type stuff
-% typeblock(typeinfo(definitions(D), assignments(A))) --> [l_type_t(_)], type_definitions(D), type_assignments(A), [r_type_t(_)].
-% typeblock(typeinfo(definitions([]), assignments([]))) --> [].
 typeblock(typeinfo(S)) --> [l_type_t(_)], type_statements(S), [r_type_t(_)].
 typeblock(typeinfo([])) --> [].
 
@@ -88,16 +89,10 @@ type_statements([]) --> [].
 type_statement(A) --> type_assignment(A).
 type_statement(D) --> type_definition(D).
 
-% type_assignments([H|T]) --> type_assignment(H), type_assignments(T).
-% type_assignments([]) --> [].
-
 type_assignment(type_assignment(T, N)) --> [l_square_t(_)], type_expression(T), [r_square_t(_)], names(N).
 
 names([N|T]) --> [identifier_t(N, _)], [semicolon_t(_)], names(T).
 names([]) --> [].
-
-% type_definitions([H|T]) --> type_definition(H), type_definitions(T).
-% type_definitions([]) --> [].
 
 type_definition(typedef(Name, T)) --> [identifier_t(Name, _)], [walrus_t(_)], type_expression(T), [semicolon_t(_)],
                                       {throw(unsupported_error("Typedefs not supported yet"))}.
@@ -111,11 +106,11 @@ type_expression(T) --> morphism(T).
 morphism(morphism(X, Y)) --> typesum(X), [arrow_t(_)], morphism(Y).
 morphism(T) --> typesum(T).
 
-typesum(typesum([P|U])) --> product(P), [bar_t(_)], reference(T), {T = typesum(U) ; dif(typesum(_), T), [T] = U}.
-typesum(P) --> product(P).
+typesum(typesum([P|U])) --> typeproduct(P), [bar_t(_)], morphism(T), {T = typesum(U) ; dif(typesum(_), T), [T] = U}.
+typesum(P) --> typeproduct(P).
 
-product(typeproduct([A|T])) --> reference(A), [comma_t(_)], reference(P), {P = typeproduct(T) ; dif(P, typeproduct(_)), [P] = T}.
-product(A) --> reference(A).
+typeproduct(typeproduct([A|T])) --> reference(A), [comma_t(_)], morphism(P), {P = typeproduct(T) ; dif(P, typeproduct(_)), [P] = T}.
+typeproduct(A) --> reference(A).
 
 reference(typeref(T)) --> [and_t(_)], array(T).
 reference(T) --> array(T).

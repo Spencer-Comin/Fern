@@ -31,15 +31,8 @@ void TypeHandler::assign_type(string name, Type *type) {
 }
 
 FunctionType *TypeHandler::build_morphism(Type *result, Type *param) {
-    // probably need some rules about destructuring based on param type size...
-    // check max number of args that can be passed to C function
     if (param->isVoidTy()) {
         return FunctionType::get(result, false);
-    } else if (param->isStructTy()) {
-        return FunctionType::get(result, static_cast<StructType *>(param)->elements(), false);
-    } else if (param->isArrayTy()) {
-        vector<Type *> params(param->getArrayNumElements(), param->getArrayElementType());
-        return FunctionType::get(result, params, false);
     } else {
         return FunctionType::get(result, {param}, false);
     }

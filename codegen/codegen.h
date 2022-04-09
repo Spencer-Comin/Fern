@@ -71,18 +71,18 @@ public:
 	Value *generate_var(std::string name);
 	Value *generate_binary(Value *left, Value *right, BinaryOp op);
 	Value *generate_fbinary(Value *left, Value *right, BinaryOp op);
-	Value *generate_func_call(std::string callee, std::vector<Value *> args);
+	Value *generate_func_call(std::string callee, Value *arg);
 
 	Value *generate_reference(Value *val);
 	Value *generate_dereference(Value *val, Type *val_points_to);
 	Value *generate_heap_copy(Value *val);
+	Value *generate_struct(std::vector<Value *> components, StructType *type);
 
 	std::pair<BasicBlock*, BasicBlock*> generate_if_cond(Value *condition); // returns else block, merge block
 	BasicBlock *start_if_else(BasicBlock *else_bb, BasicBlock *merge); // returns updated then block
 	PHINode *generate_if_merge(BasicBlock *merge, BasicBlock *then_bb, Value *then_v, Value *else_v);
 
-	Function *generate_func_head(std::string name, std::vector<std::string> params);
-	Function *generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft);
+	std::pair<Function *, std::vector<Value *>> generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft);
 	void generate_func_body(Function *func, Value *body);
 
 	Function *generate_func_declaration(std::string name, FunctionType *ft);

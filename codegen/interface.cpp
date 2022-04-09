@@ -121,55 +121,20 @@ static foreign_t generate_fbinary(term_t left, term_t right, term_t op, term_t n
 	return PL_unify_pointer(node, val_ptr);
 }
 
-static foreign_t generate_func_call(term_t callee, term_t arg_list, term_t node) {
-	term_t head = PL_new_term_ref();
-	term_t list = PL_copy_term_ref(arg_list);
+static foreign_t generate_func_call(term_t callee, term_t arg, term_t node) {
 	char *callee_name;
 	size_t len;
 	if (!PL_get_string(callee, &callee_name, &len))
 		PL_fail;
 
-	std::vector<Value *> args;
-	void *arg;
-	while (PL_get_list_ex(list, head, list)) {
-		if (!PL_get_pointer_ex(head, &arg))
-			PL_fail;
-		args.push_back(static_cast<Value *>(arg));
-	}
-
-	Value *n_val = generator->generate_func_call(std::string(callee_name), args);
+	Value *n_val = generator->generate_func_call(std::string(callee_name), term_to_pointer<Value>(arg));
 	if (!n_val)
 		PL_fail;
 
-	auto val_ptr = static_cast<void *>(n_val);
-	return PL_unify_pointer(node, val_ptr);
+	return PL_unify_pointer(node, static_cast<void *>(n_val));
 }
 
-static foreign_t generate_func_head(term_t name, term_t param_list, term_t node) {
-	term_t head = PL_new_term_ref();
-	term_t list = PL_copy_term_ref(param_list);
-	char *func_name;
-	size_t len;
-	if (!PL_get_string(name, &func_name, &len))
-		PL_fail;
-
-	std::vector<std::string> params;
-	char *param_name;
-	while (PL_get_list_ex(list, head, list)) {
-		if (!PL_get_string(head, &param_name, &len))
-			PL_fail;
-		params.push_back(std::string(param_name));
-	}
-
-	Function *func = generator->generate_func_head(std::string(func_name), params);
-	if (!func)
-		PL_fail;
-
-	auto func_ptr = static_cast<void *>(func);
-	return PL_unify_pointer(node, func_ptr);
-}
-
-static foreign_t generate_func_head_typed(term_t name, term_t param_list, term_t type,
+static foreign_t generate_func_head(term_t name, term_t param_list, term_t type,
 										  term_t node, term_t arg_values) {
 	term_t head = PL_new_term_ref();
 	term_t list = PL_copy_term_ref(param_list);
@@ -188,28 +153,27 @@ static foreign_t generate_func_head_typed(term_t name, term_t param_list, term_t
 
 	FunctionType *ft = term_to_pointer<FunctionType>(type);
 
-	Function *func = generator->generate_func_head(std::string(func_name), params, ft);
+	auto func_args = generator->generate_func_head(std::string(func_name), params, ft);
+	Function *func{func_args.first};
+	std::vector<Value *> args{func_args.second};
 	if (!func)
 		PL_fail;
 
 	// build pair list of name, function arg value
-	unsigned i = 0;
 	functor_t pair;
 	string arg_name;
 	head = PL_new_term_ref();
 	list = PL_copy_term_ref(arg_values);
-	for (auto &arg : func->args())
+	for (unsigned i = 0; i < args.size(); i++)
 	{
-		arg_name = params[i++];
-		arg.setName(arg_name);
 		
 		// put name-arg onto list
 		pair = PL_new_functor(PL_new_atom("-"), 2);
 		if (!PL_unify_list(list, head, list) ||
 			!PL_unify_term(head,
 						   PL_FUNCTOR, pair,
-						   PL_STRING, arg_name.c_str(),
-						   PL_POINTER, static_cast<void *>(&arg)))
+						   PL_STRING, params[i].c_str(),
+						   PL_POINTER, static_cast<void *>(args[i])))
 			PL_fail;
 	}
 	PL_unify_nil_ex(list);
@@ -413,6 +377,24 @@ static foreign_t generate_heap_copy(term_t val, term_t reference) {
 	return PL_unify_pointer(reference, static_cast<void *>(node));
 }
 
+static foreign_t generate_struct(term_t components, term_t type, term_t node) {
+	term_t head = PL_new_term_ref();
+	term_t list = PL_copy_term_ref(components);
+
+	vector<Value *> members;
+	while (PL_get_list(list, head, list))
+	{
+		// process head as list element
+		Value *member = term_to_pointer<Value>(head);
+		members.push_back(member);
+	}
+	if (!PL_get_nil(list))
+		PL_fail;
+
+	Value *structure = generator->generate_struct(members, term_to_pointer<StructType>(type));
+	return PL_unify_pointer(node, static_cast<void *>(structure));
+}
+
 extern "C" install_t install() {
 	PL_register_foreign("codegen_number", 2, reinterpret_cast<pl_function_t>(generate_number), 0);
 	PL_register_foreign("codegen_float", 2, reinterpret_cast<pl_function_t>(generate_float), 0);
@@ -421,9 +403,9 @@ extern "C" install_t install() {
 	PL_register_foreign("codegen_binary", 4, reinterpret_cast<pl_function_t>(generate_binary), 0);
 	PL_register_foreign("codegen_fbinary", 4, reinterpret_cast<pl_function_t>(generate_fbinary), 0);
 	PL_register_foreign("codegen_func_call", 3, reinterpret_cast<pl_function_t>(generate_func_call), 0);
-	
-	PL_register_foreign("codegen_func_head", 3, reinterpret_cast<pl_function_t>(generate_func_head), 0);
-	PL_register_foreign("codegen_func_head", 5, reinterpret_cast<pl_function_t>(generate_func_head_typed), 0);
+	PL_register_foreign("codegen_struct", 3, reinterpret_cast<pl_function_t>(generate_struct), 0);
+
+	PL_register_foreign("codegen_func_head", 5, reinterpret_cast<pl_function_t>(generate_func_head), 0);
 	PL_register_foreign("codegen_func_body", 2, reinterpret_cast<pl_function_t>(generate_func_body), 0);
 
 	PL_register_foreign("codegen_declaration", 3, reinterpret_cast<pl_function_t>(generate_declaration), 0);

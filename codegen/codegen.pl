@@ -26,9 +26,7 @@ compile(typed(declare(Name), T)) :-
 % llvm_print(+AST_Node)
 
 llvm_print(typed(def(Name, Func), T)) :-
-    % trace,
     generate(typed(def(Name, Func), T), Node),
-    % notrace, nodebug,
     nl, nl, print_function(Node).
 
 llvm_print(typed(declare(Name), T)) :-
@@ -45,7 +43,6 @@ llvm_type_print(T) :-
 
 
 % generate(+AST_Node, -LLVM_Node)
-% TODO: add reference and dereference node generators
 
 % def
 generate(typed(def(Name, function(Params, Body)), T), Node) :-
@@ -68,16 +65,17 @@ generate(typed(literal(number(Num)), T), _, Node) :-
     (bitwidth(T, N), subtype(T, "Int"), codegen_int(N, Num, true, Node)) ;
     (subtype(T, "Float"), codegen_float(Num, Node)).
 
+% nil
+generate(typed(literal(nil), "End"), _ArgValues, 0).
+
 % var
 generate(typed(var(Name), _), ArgValues, Node) :-
     get_assoc(Name, ArgValues, Node).
 
 % call
-generate(typed(call(Name, Args), _), ArgValues, Node) :-
-    maplist(generate_(ArgValues), Args, ArgNodes),
-    codegen_func_call(Name, ArgNodes, Node).
-
-generate_(ArgValues, AST, Node) :- generate(AST, ArgValues, Node).
+generate(typed(call(Name, Arg), _), ArgValues, Node) :-
+    generate(Arg, ArgValues, ArgNode),
+    codegen_func_call(Name, ArgNode, Node).
 
 % if
 generate(typed(if(Cond, Then, Else), _), ArgValues, Node) :-
@@ -106,9 +104,15 @@ generate(typed(heap_copy(AST), _), ArgValues, Node) :-
     generate(AST, ArgValues, AST_Node),
     codegen_heap_copy(AST_Node, Node).
 
+generate(typed(struct(ASTNodes), T), ArgValues, Node) :-
+    maplist(generate_(ArgValues), ASTNodes, MemberNodes),
+    typegen(T, LLVM_T),
+    codegen_struct(MemberNodes, LLVM_T, Node).
+
 generate(BadNode, _, _) :-
     throw(bad_generate(BadNode)).
-    
+
+generate_(ArgValues, AST, Node) :- generate(AST, ArgValues, Node).
 
 % typegen
 typegen(morphism(X, Y), LLVM_T) :-
