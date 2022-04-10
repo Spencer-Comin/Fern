@@ -53,7 +53,6 @@ private:
 
 	std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 	std::unique_ptr<IRBuilder<>> Builder;
-	map<string, Value *> NamedValues;  // TODO: move to Prolog?
 	std::unique_ptr<KaleidoscopeJIT> TheJIT;  // TODO: enable AOT
 
 	void InitializeModuleAndPassManager();

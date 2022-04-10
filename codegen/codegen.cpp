@@ -69,13 +69,6 @@ Value *CodeGenerator::generate_int(unsigned bitwidth, long val, bool issigned) {
 	return ConstantInt::get(*TheContext, APInt(bitwidth, val, issigned));
 }
 
-Value *CodeGenerator::generate_var(std::string name) {
-	Value *v = NamedValues[name];
-	if (!v)
-		return log_error_value("Unknown variable name");
-	return v;
-}
-
 Value *CodeGenerator::generate_fbinary(Value *left, Value *right, BinaryOp op) {
 	if (!left || !right)
 		return nullptr;
@@ -161,7 +154,6 @@ std::pair<Function *, std::vector<Value *>> CodeGenerator::generate_func_head(st
 
 	if (params.size() == 1) {
 		func->arg_begin()->setName(params[0]);
-		NamedValues[params[0]] = func->arg_begin();
 		args.push_back(func->arg_begin());
 	} else if (params.size() > 1) {
 		// destructure param
@@ -172,7 +164,6 @@ std::pair<Function *, std::vector<Value *>> CodeGenerator::generate_func_head(st
 		for (unsigned i = 0; i < params.size(); i++) {
 			ptr = Builder->CreateStructGEP(param_type, arg_ptr, i, "component");
 			arg = Builder->CreateLoad(param_type->getContainedType(i), ptr, params[i]);
-			NamedValues[params[i]] = arg;
 			args.push_back(arg);
 		}
 	}

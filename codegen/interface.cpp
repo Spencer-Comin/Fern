@@ -64,21 +64,6 @@ static foreign_t generate_int(term_t width, term_t val, term_t issigned, term_t 
 	return PL_unify_pointer(node, static_cast<void *>(n_val));
 }
 
-static foreign_t generate_var(term_t name, term_t node) {
-	char *n_name;
-	size_t len;
-
-	if(!PL_get_string(name, &n_name, &len))
-		PL_fail;
-	
-	Value *n_val = generator->generate_var(std::string(n_name));
-	if (!n_val)
-		PL_fail;
-
-	auto val_ptr = static_cast<void *>(n_val);
-	return PL_unify_pointer(node, val_ptr);
-}
-
 static foreign_t generate_binary(term_t left, term_t right, term_t op, term_t node) {
 	void *n_left_ptr, *n_right_ptr;
 	char *n_op_ptr;
@@ -399,7 +384,6 @@ extern "C" install_t install() {
 	PL_register_foreign("codegen_number", 2, reinterpret_cast<pl_function_t>(generate_number), 0);
 	PL_register_foreign("codegen_float", 2, reinterpret_cast<pl_function_t>(generate_float), 0);
 	PL_register_foreign("codegen_int", 4, reinterpret_cast<pl_function_t>(generate_int), 0);
-	PL_register_foreign("codegen_var", 2, reinterpret_cast<pl_function_t>(generate_var), 0);
 	PL_register_foreign("codegen_binary", 4, reinterpret_cast<pl_function_t>(generate_binary), 0);
 	PL_register_foreign("codegen_fbinary", 4, reinterpret_cast<pl_function_t>(generate_fbinary), 0);
 	PL_register_foreign("codegen_func_call", 3, reinterpret_cast<pl_function_t>(generate_func_call), 0);
