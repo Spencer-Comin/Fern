@@ -107,12 +107,7 @@ static foreign_t generate_fbinary(term_t left, term_t right, term_t op, term_t n
 }
 
 static foreign_t generate_func_call(term_t callee, term_t arg, term_t node) {
-	char *callee_name;
-	size_t len;
-	if (!PL_get_string(callee, &callee_name, &len))
-		PL_fail;
-
-	Value *n_val = generator->generate_func_call(std::string(callee_name), term_to_pointer<Value>(arg));
+	Value *n_val = generator->generate_func_call(term_to_pointer<Function>(callee), term_to_pointer<Value>(arg));
 	if (!n_val)
 		PL_fail;
 

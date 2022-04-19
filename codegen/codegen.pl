@@ -1,5 +1,5 @@
 :- module(codegen, [
-    generate/2,
+    generate_statement/4,
     llvm_print/1,
     compile/1,
     jit_call/1,
@@ -15,42 +15,44 @@
 
 prep_codegen :- abolish_module_tables(codegen), reset_generator.
 
-% compile(+AST_Node)
+compile(AST) :-
+    empty_assoc(InGlobals),
+    foldl(generate_statement, AST, _Nodes, InGlobals, _OutGlobals).
 
-compile(def(Name, Func): T) :-
-    generate(def(Name, Func): T, _).
+llvm_print(AST) :-
+    empty_assoc(InGlobals),
+    foldl(llvm_print, AST, InGlobals, _OutGlobals).
 
-compile(declare(Name): T) :-
-    generate(declare(Name): T, _, _).
-
-% llvm_print(+AST_Node)
-
-llvm_print(def(Name, Func): T) :-
-    generate(def(Name, Func): T, Node),
+llvm_print(def(Name, Func): T, InGlobals, OutGlobals) :-
+    generate_statement(def(Name, Func): T, Node, InGlobals, OutGlobals),
     nl, nl, print_function(Node).
 
-llvm_print(declare(Name): T) :-
-    generate(declare(Name): T, _, Node),
+llvm_print(declare(Name): T, InGlobals, OutGlobals) :-
+    generate_statement(declare(Name): T, Node, InGlobals, OutGlobals),
     nl, print_function(Node).
-
-llvm_print(Expression: T) :-
-    throw(llvm_print_error(Expression, T)),
-    llvm_print(def("__anon_expr", function([], Expression: T)): morphism("End", T)).
 
 llvm_type_print(T) :-
     typegen(T, LLVM_T),
     print_type(LLVM_T).
 
-
-% generate(+AST_Node, -LLVM_Node)
+% generate_statement(+Statement, -LLVMNode, +InGlobals, -OutGlobals)
 
 % def
-generate(def(Name, function(Params, Body)): T, Node) :-
+generate_statement(def(Name, function(Params, Body)): T, Node, InGlobals, OutGlobals) :-
     typegen(T, LLVM_T),
     codegen_func_head(Name, Params, LLVM_T, Node, NameArgPairs),
-    list_to_assoc(NameArgPairs, ArgValues),
-    generate(Body, ArgValues, BodyNode),
+    put_assoc(Name, InGlobals, Node, OutGlobals),
+    assoc_to_list(OutGlobals, GlobalPairs),
+    append(GlobalPairs, NameArgPairs, NamedPairs),
+    list_to_assoc(NamedPairs, NamedValues),
+    generate(Body, NamedValues, BodyNode),
     codegen_func_body(Node, BodyNode).
+
+% declare
+generate_statement(declare(Name): T, Node, InGlobals, OutGlobals) :-
+    typegen(T, LLVM_T),
+    codegen_declaration(Name, LLVM_T, Node),
+    put_assoc(Name, InGlobals, Node, OutGlobals).
 
 % binary
 generate(binary(Op, Left, Right): T, ArgValues, Node) :-
@@ -73,9 +75,10 @@ generate(var(Name): _, ArgValues, Node) :-
     get_assoc(Name, ArgValues, Node).
 
 % call
-generate(call(Name, Arg): _, ArgValues, Node) :-
+generate(call(Func, Arg): _, ArgValues, Node) :-
+    generate(Func, ArgValues, FuncNode),
     generate(Arg, ArgValues, ArgNode),
-    codegen_func_call(Name, ArgNode, Node).
+    codegen_func_call(FuncNode, ArgNode, Node).
 
 % if
 generate(if(Cond, Then, Else): _, ArgValues, Node) :-
@@ -85,11 +88,6 @@ generate(if(Cond, Then, Else): _, ArgValues, Node) :-
     codegen_start_if_else(ElseBlock, MergeBlock, ThenBlock),
     generate(Else, ArgValues, ElseNode),
     codegen_if_merge(MergeBlock, ThenBlock, ThenNode, ElseNode, Node).
-
-% declare
-generate(declare(Name): T, _ArgValues, Node) :-
-    typegen(T, LLVM_T),
-    codegen_declaration(Name, LLVM_T, Node).
 
 generate(reference(AST): _, ArgValues, Node) :-
     generate(AST, ArgValues, AST_Node),

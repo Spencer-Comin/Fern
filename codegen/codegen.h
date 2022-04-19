@@ -56,7 +56,7 @@ private:
 	std::unique_ptr<KaleidoscopeJIT> TheJIT;  // TODO: enable AOT
 
 	void InitializeModuleAndPassManager();
-	Function *getFunction(std::string &name);
+	Function *getFunction(std::string name);
 
 public:
 	CodeGenerator(/* args */);
@@ -70,7 +70,7 @@ public:
 	Value *generate_var(std::string name);
 	Value *generate_binary(Value *left, Value *right, BinaryOp op);
 	Value *generate_fbinary(Value *left, Value *right, BinaryOp op);
-	Value *generate_func_call(std::string callee, Value *arg);
+	Value *generate_func_call(Function *func, Value *arg);
 
 	Value *generate_reference(Value *val);
 	Value *generate_dereference(Value *val, Type *val_points_to);

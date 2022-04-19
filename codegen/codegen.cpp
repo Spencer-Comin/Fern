@@ -40,7 +40,7 @@ void CodeGenerator::InitializeModuleAndPassManager() {
 	generate_func_declaration("heap_allocate", types.build_morphism(Type::getInt8PtrTy(*TheContext), Type::getInt64PtrTy(*TheContext)));
 }
 
-Function *CodeGenerator::getFunction(std::string &name) {
+Function *CodeGenerator::getFunction(std::string name) {
 	if (auto *func = TheModule->getFunction(name))
 		return func;
 
@@ -137,12 +137,11 @@ PHINode *CodeGenerator::generate_if_merge(BasicBlock *merge, BasicBlock *then_bb
 	return pn;
 }
 
-Value *CodeGenerator::generate_func_call(std::string callee, Value *arg) {
-	Function *callee_f = getFunction(callee);
+Value *CodeGenerator::generate_func_call(Function *callee_f, Value *arg) {
 	std::vector<Value *> args{};
 	if (arg)
 		args.push_back(arg);
-	return Builder->CreateCall(callee_f, args, callee + "_res");	
+	return Builder->CreateCall(callee_f, args, callee_f->getName() + "_res");	
 }
 
 std::pair<Function *, std::vector<Value *>> CodeGenerator::generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft) {
@@ -205,8 +204,8 @@ Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
 	
 	Builder->SetInsertPoint(heap_free_bb);
 	ptr = Builder->CreatePointerCast(ptr, Type::getInt8PtrTy(*TheContext), val->getName() + "_as_void_ptr");
-	generate_func_call("heap_free", ptr);
-	
+	generate_func_call(getFunction("heap_free"), ptr);
+
 	Builder->CreateBr(merge_bb);
 	func->getBasicBlockList().push_back(merge_bb);
 	Builder->SetInsertPoint(merge_bb);
@@ -215,7 +214,7 @@ Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
 
 Value *CodeGenerator::generate_heap_copy(Value *val) {
 	Type *ptr_type = PointerType::get(val->getType(), 0);
-	Value *ptr = generate_func_call("heap_allocate",
+	Value *ptr = generate_func_call(getFunction("heap_allocate"),
 		ConstantInt::get(Type::getInt64Ty(*TheContext),
 						 TheModule->getDataLayout().getTypeAllocSize(val->getType()))
 	);

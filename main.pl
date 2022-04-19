@@ -9,13 +9,13 @@
 fern_run(File) :-
     parse_fern_source(File, TypedAST),
     prep_codegen,
-    maplist(compile, TypedAST),
+    compile(TypedAST),
     jit_call("main").
 
 fern_ir(File) :-
     parse_fern_source(File, TypedAST),
     prep_codegen,
-    maplist(llvm_print, TypedAST).
+    llvm_print(TypedAST).
 
 parse_fern_source(File, CompleteTypeInfo, ResolvedAST) :-
     (read_file_to_codes(File, Codes, []) ;

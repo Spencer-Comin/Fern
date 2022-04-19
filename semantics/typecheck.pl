@@ -55,6 +55,12 @@ typecheck(Assigns,
     resolve_pointers(AnnotatedBody, TargetType, PartialResolvedBody),
     resolve_heap_copy(PartialResolvedBody, ResolvedBody).
 
+typecheck(Assigns,
+          def(Name, Body),
+          TypedBody) :-
+    Body \= function(_, _),
+    typecheck(Assigns, def(Name, function([], Body)), TypedBody).
+
 % struct
 typecheck(Assigns,
           struct(Expressions),
@@ -74,7 +80,6 @@ typecheck(Assigns,
     binary_type(Op, LeftType, RightType, BinaryType).
 
 % number
-% TODO: switch to check that the number fits within the max and min value of the type
 typecheck(_Assigns,
           literal(number(Num)),
           literal(number(Num)): Type) :-
@@ -93,10 +98,11 @@ typecheck(Assigns,
 
 % call (multiple arguments)
 typecheck(Assigns,
-          call(Name, Arg),
-          call(Name, ResolvedArg): TargetType) :- 
+          call(Func, Arg),
+          call(ResolvedFunc, ResolvedArg): TargetType) :- 
     Arg = struct(_),
-    get_assoc(Name, Assigns, morphism(SourceType, TargetType)),
+    typecheck(Assigns, Func, ResolvedFunc),
+    ResolvedFunc = _: morphism(SourceType, TargetType),
     (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
     % typecheck the struct argument and children
     typecheck(Assigns, Arg, struct(AnnotatedArgs): _),
@@ -109,10 +115,11 @@ typecheck(Assigns,
 
 % call (single argument)
 typecheck(Assigns,
-          call(Name, Arg),
-          call(Name, ResolvedArg): TargetType) :-
+          call(Func, Arg),
+          call(ResolvedFunc, ResolvedArg): TargetType) :-
     Arg \= struct(_),
-    get_assoc(Name, Assigns, morphism(SourceType, TargetType)),
+    typecheck(Assigns, Func, ResolvedFunc),
+    ResolvedFunc = _: morphism(SourceType, TargetType),
     typecheck(Assigns, Arg, AnnotatedArg),
     resolve_pointers(AnnotatedArg, SourceType, ResolvedArg).
 
