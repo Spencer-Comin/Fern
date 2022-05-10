@@ -101,8 +101,8 @@ typecheck(Assigns,
           call(Func, Arg),
           call(ResolvedFunc, ResolvedArg): TargetType) :- 
     Arg = struct(_),
-    typecheck(Assigns, Func, ResolvedFunc),
-    ResolvedFunc = _: morphism(SourceType, TargetType),
+    typecheck(Assigns, Func, AnnotatedFunc),
+    resolve_pointers(AnnotatedFunc, morphism(SourceType, TargetType), ResolvedFunc),
     (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
     % typecheck the struct argument and children
     typecheck(Assigns, Arg, struct(AnnotatedArgs): _),
@@ -140,14 +140,17 @@ typecheck(Assigns,
           declare(Name): Type) :-
     get_assoc(Name, Assigns, Type).
 
+% error
+typecheck(_, BadNode, _) :- throw(type_error(BadNode)).
+
 % resolvers
 
 % given node of type T while looking for T, good
-resolve_pointers(Node: T, T, Node: T).
+resolve_pointers(Node: T, U, Node: U) :- T = U ; nonvar(T), nonvar(U), promotable(T, U).
 % given node of type T while looking for ref(T), nest in reference
-resolve_pointers(Node: T, typeref(T), reference(Node: T): typeref(T)).
+resolve_pointers(Node: T, typeref(U), reference(Node: U): typeref(U)) :- T = U ; nonvar(T), nonvar(U), promotable(T, U).
 % given node of type ref(T) while looking for T, nest in dereference
-resolve_pointers(Node: typeref(T), T, dereference(Node: typeref(T)): T).
+resolve_pointers(Node: typeref(T), U, dereference(Node: typeref(U)): U) :- T = U ; nonvar(T), nonvar(U), promotable(T, U).
 
 % given referenced node that needs to be on heap, copy to heap
 resolve_heap_copy(reference(N): T, heap_copy(N): T).

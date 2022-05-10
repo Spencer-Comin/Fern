@@ -56,7 +56,7 @@ private:
 	std::unique_ptr<KaleidoscopeJIT> TheJIT;  // TODO: enable AOT
 
 	void InitializeModuleAndPassManager();
-	Function *getFunction(std::string name);
+	FunctionCallee getFunction(std::string &&name, FunctionType *ft);
 
 public:
 	CodeGenerator(/* args */);
@@ -67,10 +67,10 @@ public:
 	Value *generate_number(double val);
 	Value *generate_float(double val);
 	Value *generate_int(unsigned bitwidth, long val, bool issigned);
-	Value *generate_var(std::string name);
+	Value *generate_var(std::string &&name);
 	Value *generate_binary(Value *left, Value *right, BinaryOp op);
 	Value *generate_fbinary(Value *left, Value *right, BinaryOp op);
-	Value *generate_func_call(Function *func, Value *arg);
+	Value *generate_func_call(FunctionCallee func, Value *arg);
 
 	Value *generate_reference(Value *val);
 	Value *generate_dereference(Value *val, Type *val_points_to);
@@ -81,10 +81,10 @@ public:
 	BasicBlock *start_if_else(BasicBlock *else_bb, BasicBlock *merge); // returns updated then block
 	PHINode *generate_if_merge(BasicBlock *merge, BasicBlock *then_bb, Value *then_v, Value *else_v);
 
-	std::pair<Function *, std::vector<Value *>> generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft);
+	std::pair<Function *, std::vector<Value *>> generate_func_head(std::string &&name, std::vector<std::string> params, FunctionType *ft);
 	void generate_func_body(Function *func, Value *body);
 
-	Function *generate_func_declaration(std::string name, FunctionType *ft);
+	Function *generate_func_declaration(std::string &&name, FunctionType *ft);
 
 	void jit_current_module();  // TODO: return new module & context
 	void jit_call(std::string name);  // TODO: add support for args?

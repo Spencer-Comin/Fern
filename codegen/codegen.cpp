@@ -40,13 +40,13 @@ void CodeGenerator::InitializeModuleAndPassManager() {
 	generate_func_declaration("heap_allocate", types.build_morphism(Type::getInt8PtrTy(*TheContext), Type::getInt64PtrTy(*TheContext)));
 }
 
-Function *CodeGenerator::getFunction(std::string name) {
+FunctionCallee CodeGenerator::getFunction(std::string &&name, FunctionType *ft) {
 	if (auto *func = TheModule->getFunction(name))
-		return func;
+		return FunctionCallee(ft, func);
 
 	// find some other way?
 
-	return nullptr;
+	return {};
 }
 
 CodeGenerator::CodeGenerator(/* args */) {
@@ -137,14 +137,14 @@ PHINode *CodeGenerator::generate_if_merge(BasicBlock *merge, BasicBlock *then_bb
 	return pn;
 }
 
-Value *CodeGenerator::generate_func_call(Function *callee_f, Value *arg) {
+Value *CodeGenerator::generate_func_call(FunctionCallee callee_f, Value *arg) {
 	std::vector<Value *> args{};
 	if (arg)
 		args.push_back(arg);
-	return Builder->CreateCall(callee_f, args, callee_f->getName() + "_res");	
+	return Builder->CreateCall(callee_f, args, callee_f.getCallee()->getName() + "_res");
 }
 
-std::pair<Function *, std::vector<Value *>> CodeGenerator::generate_func_head(std::string name, std::vector<std::string> params, FunctionType *ft) {
+std::pair<Function *, std::vector<Value *>> CodeGenerator::generate_func_head(std::string &&name, std::vector<std::string> params, FunctionType *ft) {
 	Function *func = Function::Create(ft, Function::ExternalLinkage, name, TheModule.get());
 
 	BasicBlock *bb = BasicBlock::Create(*TheContext, "entry", func);
@@ -203,8 +203,13 @@ Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
 	Builder->CreateCondBr(last_bit, heap_free_bb, merge_bb);
 	
 	Builder->SetInsertPoint(heap_free_bb);
-	ptr = Builder->CreatePointerCast(ptr, Type::getInt8PtrTy(*TheContext), val->getName() + "_as_void_ptr");
-	generate_func_call(getFunction("heap_free"), ptr);
+	Type *void_ptr_type = Type::getInt8PtrTy(*TheContext);
+	ptr = Builder->CreatePointerCast(ptr, void_ptr_type, val->getName() + "_as_void_ptr");
+	generate_func_call(
+		getFunction("heap_free",
+					FunctionType::get(Type::getVoidTy(*TheContext), {void_ptr_type}, false)),
+		ptr
+	);
 
 	Builder->CreateBr(merge_bb);
 	func->getBasicBlockList().push_back(merge_bb);
@@ -213,9 +218,12 @@ Value *CodeGenerator::generate_dereference(Value *val, Type *val_points_to) {
 }
 
 Value *CodeGenerator::generate_heap_copy(Value *val) {
-	Type *ptr_type = PointerType::get(val->getType(), 0);
-	Value *ptr = generate_func_call(getFunction("heap_allocate"),
-		ConstantInt::get(Type::getInt64Ty(*TheContext),
+	Type *ptr_type = PointerType::getUnqual(val->getType());
+	Type *size_type = Type::getInt64Ty(*TheContext);
+	Value *ptr = generate_func_call(
+		getFunction("heap_allocate",
+					FunctionType::get(Type::getInt8PtrTy(*TheContext), {size_type}, false)),
+		ConstantInt::get(size_type,
 						 TheModule->getDataLayout().getTypeAllocSize(val->getType()))
 	);
 	ptr = Builder->CreatePointerCast(ptr, ptr_type, "heap_addr");
@@ -226,7 +234,7 @@ Value *CodeGenerator::generate_heap_copy(Value *val) {
 	return ptr;
 }
 
-Function *CodeGenerator::generate_func_declaration(std::string name, FunctionType *ft) {
+Function *CodeGenerator::generate_func_declaration(std::string &&name, FunctionType *ft) {
 	return Function::Create(ft, Function::ExternalLinkage, name, TheModule.get());
 }
 

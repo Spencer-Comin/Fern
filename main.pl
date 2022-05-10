@@ -29,5 +29,13 @@ parse_fern_source(File, CompleteTypeInfo, ResolvedAST) :-
 
 parse_fern_source(File, TypedAST) :-
     parse_fern_source(File, CompleteTypeInfo, ResolvedAST),
-    (typecheck(CompleteTypeInfo, ResolvedAST, TypedAST) ;
-        print_term((ast(ResolvedAST), CompleteTypeInfo), []), throw(type_error)).
+    catch(typecheck(CompleteTypeInfo, ResolvedAST, TypedAST),
+          TypeError,
+          handle_type_error(CompleteTypeInfo, ResolvedAST, TypeError)).
+
+handle_type_error(TypeInfo, AST, Error) :-
+    Error = type_error(_),
+    print_term(Error, [indent_arguments(true)]), nl,
+    print_term(AST, [indent_arguments(true)]), nl,
+    print_term(TypeInfo, [indent_arguments(true)]), nl,
+    throw(Error).

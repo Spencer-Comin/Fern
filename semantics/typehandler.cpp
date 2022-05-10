@@ -1,4 +1,5 @@
 #include "typehandler.h"
+#include <iostream>
 
 void TypeHandler::set_context(LLVMContext *ctx) {
     context = ctx;
@@ -39,9 +40,13 @@ FunctionType *TypeHandler::build_morphism(Type *result, Type *param) {
 }
 
 Type *TypeHandler::build_product(vector<Type *> members) {
+    for (auto &member : members) {
+        if (member->isFunctionTy())
+            member = PointerType::getUnqual(member);
+    }
     return StructType::get(*context, members, true);
 }
 
 Type *TypeHandler::build_ref(Type *type) {
-    return PointerType::get(type, 0);
+    return PointerType::getUnqual(type);
 }

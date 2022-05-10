@@ -1,4 +1,4 @@
-:- module(types, [decompose/3, binary_type/4, bounds/3, bitwidth/2, subtype/2]).
+:- module(types, [decompose/3, binary_type/4, bounds/3, bitwidth/2, subtype/2, promotable/2]).
 :- discontiguous subtype/2.
 :- discontiguous bitwidth/2.
 :- discontiguous bounds/3.
@@ -37,6 +37,14 @@ subtype("Float128", "Float"). bitwidth("Float128", 128). bounds("Float128", -100
 
 equivalent("Byte", "UInt8").
 
+
+% promotable
+
+promotable(X, Y) :-
+    bounds(X, Xmin, Xmax),
+    bounds(Y, Ymin, Ymax),
+    Xmin >= Ymin,
+    Xmax =< Ymax.
 
 %% COMPOSITE TYPE RULES
 

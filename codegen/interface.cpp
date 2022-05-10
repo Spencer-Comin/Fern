@@ -12,8 +12,7 @@
 template <typename T>
 T *term_to_pointer(term_t term) {
 	void *ptr;
-	PL_get_pointer_ex(term, &ptr);
-	return static_cast<T *>(ptr);
+	return PL_get_pointer(term, &ptr) ? static_cast<T *>(ptr) : nullptr;
 }
 
 template <typename T> // T must be a LLVM namespace type with a print method
@@ -106,16 +105,25 @@ static foreign_t generate_fbinary(term_t left, term_t right, term_t op, term_t n
 	return PL_unify_pointer(node, val_ptr);
 }
 
-static foreign_t generate_func_call(term_t callee, term_t arg, term_t node) {
-	Value *n_val = generator->generate_func_call(term_to_pointer<Function>(callee), term_to_pointer<Value>(arg));
+static foreign_t generate_func_call(term_t callee, term_t callee_type, term_t arg, term_t node) {
+	if (PL_is_functor(callee, PL_new_functor(PL_new_atom("func_ptr"), 2))) {
+		term_t temp_type = PL_new_term_ref(), temp_callee = PL_new_term_ref();
+		if (!PL_get_arg(2, callee, temp_type) || !PL_get_arg(1, callee, temp_callee))
+			PL_fail;
+		callee_type = temp_type;
+		callee = temp_callee;
+	}
+
+	FunctionCallee fc {term_to_pointer<FunctionType>(callee_type), term_to_pointer<Value>(callee)};
+	Value *n_val = generator->generate_func_call(fc, term_to_pointer<Value>(arg));
 	if (!n_val)
 		PL_fail;
 
 	return PL_unify_pointer(node, static_cast<void *>(n_val));
 }
 
-static foreign_t generate_func_head(term_t name, term_t param_list, term_t type,
-										  term_t node, term_t arg_values) {
+static foreign_t generate_func_head(term_t name, term_t param_list, term_t param_types, term_t type,
+									term_t func, term_t node, term_t arg_values) {
 	term_t head = PL_new_term_ref();
 	term_t list = PL_copy_term_ref(param_list);
 	char *func_name;
@@ -131,34 +139,49 @@ static foreign_t generate_func_head(term_t name, term_t param_list, term_t type,
 		params.push_back(std::string(param_name));
 	}
 
+	std::vector<Type *> types;
+	head = PL_new_term_ref();
+	list = PL_copy_term_ref(param_types);
+	while (PL_get_list_ex(list, head, list)) {
+		types.push_back(term_to_pointer<Type>(head));
+	}
+
 	FunctionType *ft = term_to_pointer<FunctionType>(type);
 
 	auto func_args = generator->generate_func_head(std::string(func_name), params, ft);
-	Function *func{func_args.first};
+	Function *func_ptr{func_args.first};
 	std::vector<Value *> args{func_args.second};
 	if (!func)
 		PL_fail;
 
-	// build pair list of name, function arg value
-	functor_t pair;
-	string arg_name;
+	// build list of name, function arg value
 	head = PL_new_term_ref();
 	list = PL_copy_term_ref(arg_values);
 	for (unsigned i = 0; i < args.size(); i++)
 	{
+		// put name onto list
+		if (!PL_unify_list(list, head, list) || !PL_unify_string_chars(head, params[i].c_str()))
+			PL_fail;
 		
-		// put name-arg onto list
-		pair = PL_new_functor(PL_new_atom("-"), 2);
-		if (!PL_unify_list(list, head, list) ||
-			!PL_unify_term(head,
-						   PL_FUNCTOR, pair,
-						   PL_STRING, params[i].c_str(),
-						   PL_POINTER, static_cast<void *>(args[i])))
+		// put arg onto list
+		if (!PL_unify_list(list, head, list))
+			PL_fail;
+		if (types[i]->isFunctionTy()) {
+			if (!PL_unify_term(head,
+							   PL_FUNCTOR_CHARS, "func_ptr", 2,
+							   PL_POINTER, args[i],
+							   PL_POINTER, types[i]))
+				PL_fail;
+		} else if (!PL_unify_pointer(head, args[i]))
 			PL_fail;
 	}
 	PL_unify_nil_ex(list);
 
-	return PL_unify_pointer(node, static_cast<void *>(func));
+	return PL_unify_pointer(func, static_cast<void *>(func_ptr))
+		&& PL_unify_term(node,
+						 PL_FUNCTOR_CHARS, "func_ptr", 2,
+						 PL_POINTER, func_ptr,
+						 PL_POINTER, ft);
 }
 
 static foreign_t generate_func_body(term_t head, term_t body) {
@@ -185,7 +208,10 @@ static foreign_t generate_declaration(term_t name, term_t type, term_t node) {
 		PL_fail;
 	FunctionType *ft = term_to_pointer<FunctionType>(type);
 	Function *func = generator->generate_func_declaration(std::string(name_ptr), ft);
-	return PL_unify_pointer(node, static_cast<void *>(func));
+	return PL_unify_term(node,
+						 PL_FUNCTOR_CHARS, "func_ptr", 2,
+						 PL_POINTER, func,
+						 PL_POINTER, ft);
 }
 
 static foreign_t jit_current_module() {
@@ -338,12 +364,26 @@ static foreign_t assign_type(term_t name, term_t type) {
 static foreign_t handle_reference(term_t val, term_t type, term_t reference) {
 	if (!PL_is_variable(val) && PL_is_variable(reference))
 	{ // +val -reference
-		Value *node = generator->generate_reference(term_to_pointer<Value>(val));
+		if (PL_is_functor(val, PL_new_functor(PL_new_atom("func_ptr"), 2))) {
+			term_t temp = PL_new_term_ref();
+			if (!PL_get_arg(1, val, temp))
+				PL_fail;
+			val = temp;
+		}
+		Value *v = term_to_pointer<Value>(val);
+		Value *node = generator->generate_reference(v);
 		return PL_unify_pointer(reference, static_cast<void *>(node));
 	}
 	else if (PL_is_variable(val) && !PL_is_variable(reference))
 	{ // -val +reference
-		Value *node = generator->generate_dereference(term_to_pointer<Value>(reference), term_to_pointer<Type>(type));
+		Type *t = term_to_pointer<Type>(type);
+		Value *node = generator->generate_dereference(term_to_pointer<Value>(reference), t->isFunctionTy() ? PointerType::getUnqual(t) : t);
+		if (t->isFunctionTy()) {
+			return PL_unify_term(val,
+								 PL_FUNCTOR, PL_new_functor(PL_new_atom("func_ptr"), 2),
+								 PL_POINTER, node,
+								 PL_POINTER, t);
+		}
 		return PL_unify_pointer(val, static_cast<void *>(node));
 	}
 	else
@@ -364,9 +404,13 @@ static foreign_t generate_struct(term_t components, term_t type, term_t node) {
 	vector<Value *> members;
 	while (PL_get_list(list, head, list))
 	{
-		// process head as list element
-		Value *member = term_to_pointer<Value>(head);
-		members.push_back(member);
+		if (PL_is_functor(head, PL_new_functor(PL_new_atom("func_ptr"), 2))) {
+			term_t temp = PL_new_term_ref();
+			if (!PL_get_arg(1, head, temp))
+				PL_fail;
+			head = temp;
+		}
+		members.push_back(term_to_pointer<Value>(head));
 	}
 	if (!PL_get_nil(list))
 		PL_fail;
@@ -381,10 +425,10 @@ extern "C" install_t install() {
 	PL_register_foreign("codegen_int", 4, reinterpret_cast<pl_function_t>(generate_int), 0);
 	PL_register_foreign("codegen_binary", 4, reinterpret_cast<pl_function_t>(generate_binary), 0);
 	PL_register_foreign("codegen_fbinary", 4, reinterpret_cast<pl_function_t>(generate_fbinary), 0);
-	PL_register_foreign("codegen_func_call", 3, reinterpret_cast<pl_function_t>(generate_func_call), 0);
+	PL_register_foreign("codegen_func_call", 4, reinterpret_cast<pl_function_t>(generate_func_call), 0);
 	PL_register_foreign("codegen_struct", 3, reinterpret_cast<pl_function_t>(generate_struct), 0);
 
-	PL_register_foreign("codegen_func_head", 5, reinterpret_cast<pl_function_t>(generate_func_head), 0);
+	PL_register_foreign("codegen_func_head", 7, reinterpret_cast<pl_function_t>(generate_func_head), 0);
 	PL_register_foreign("codegen_func_body", 2, reinterpret_cast<pl_function_t>(generate_func_body), 0);
 
 	PL_register_foreign("codegen_declaration", 3, reinterpret_cast<pl_function_t>(generate_declaration), 0);

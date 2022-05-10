@@ -28,8 +28,8 @@ llvm_print(def(Name, Func): T, InGlobals, OutGlobals) :-
     nl, nl, print_function(Node).
 
 llvm_print(declare(Name): T, InGlobals, OutGlobals) :-
-    generate_statement(declare(Name): T, Node, InGlobals, OutGlobals),
-    nl, print_function(Node).
+    generate_statement(declare(Name): T, func_ptr(Func, _LLVM_Type), InGlobals, OutGlobals),
+    nl, print_function(Func).
 
 llvm_type_print(T) :-
     typegen(T, LLVM_T),
@@ -38,15 +38,18 @@ llvm_type_print(T) :-
 % generate_statement(+Statement, -LLVMNode, +InGlobals, -OutGlobals)
 
 % def
-generate_statement(def(Name, function(Params, Body)): T, Node, InGlobals, OutGlobals) :-
+generate_statement(def(Name, function(Params, Body)): T, Func, InGlobals, OutGlobals) :-
     typegen(T, LLVM_T),
-    codegen_func_head(Name, Params, LLVM_T, Node, NameArgPairs),
+    decompose_param_types(Params, T, ParamTypes),
+    maplist(typegen, ParamTypes, LLVM_ParamTypes),
+    codegen_func_head(Name, Params, LLVM_ParamTypes, LLVM_T, Func, Node, NamesArgs),
+    zip_to_pairs(NamesArgs, NameArgPairs),
     put_assoc(Name, InGlobals, Node, OutGlobals),
     assoc_to_list(OutGlobals, GlobalPairs),
     append(GlobalPairs, NameArgPairs, NamedPairs),
     list_to_assoc(NamedPairs, NamedValues),
     generate(Body, NamedValues, BodyNode),
-    codegen_func_body(Node, BodyNode).
+    codegen_func_body(Func, BodyNode).
 
 % declare
 generate_statement(declare(Name): T, Node, InGlobals, OutGlobals) :-
@@ -75,10 +78,11 @@ generate(var(Name): _, ArgValues, Node) :-
     get_assoc(Name, ArgValues, Node).
 
 % call
-generate(call(Func, Arg): _, ArgValues, Node) :-
+generate(call(Func, Arg): T, ArgValues, Node) :-
     generate(Func, ArgValues, FuncNode),
     generate(Arg, ArgValues, ArgNode),
-    codegen_func_call(FuncNode, ArgNode, Node).
+    typegen(T, LLVM_T),
+    codegen_func_call(FuncNode, LLVM_T, ArgNode, Node).
 
 % if
 generate(if(Cond, Then, Else): _, ArgValues, Node) :-
@@ -107,8 +111,8 @@ generate(struct(ASTNodes): T, ArgValues, Node) :-
     typegen(T, LLVM_T),
     codegen_struct(MemberNodes, LLVM_T, Node).
 
-generate(BadNode, _, _) :-
-    throw(bad_generate(BadNode)).
+generate(BadNode, ArgValues, LLVMNode) :-
+    throw(bad_generate(BadNode, ArgValues, LLVMNode)).
 
 generate_(ArgValues, AST, Node) :- generate(AST, ArgValues, Node).
 
@@ -134,3 +138,13 @@ typegen(T, LLVM_T) :-
 type_assign(Name, Type) :-
     typegen(Type, LLVM_T),
     assign_llvm_type(Name, LLVM_T).
+
+% helpers
+decompose_param_types([], morphism("End", _), []).
+decompose_param_types([_], morphism(T, _), [T]).
+decompose_param_types(Params, morphism(typeproduct(Types), _), Types) :-
+    length(Params, L),
+    length(Types, L).
+
+zip_to_pairs([], []).
+zip_to_pairs([A,B|T], [A-B|R]) :- zip_to_pairs(T, R).

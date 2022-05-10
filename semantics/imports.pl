@@ -4,12 +4,6 @@
 :- use_module('../main').
 
 
-resolved_import(import_chain(Chain), TypeInfo, ASTNode) :-
-    length(Chain, L), L > 2,
-    append(PathList, [Name], Chain),
-    atomic_list_concat(PathList, '/', Path),
-    resolved_import(import_chain([Path, Name]), TypeInfo, ASTNode).
-
 resolved_import(import_chain(["std", Name]), TypeInfo, import(["std"], Name)) :- 
     read_file_to_codes('runtime/std.types.frn', Codes, []),
     tokenize(Codes, Tokens),
@@ -21,6 +15,14 @@ resolved_import(import_chain([Path, Name]), TypeInfo, ASTNode) :-
     parse_fern_source(FileName, typeinfo(TypeInfo), AST),
     member(ASTNode, AST),
     ASTNode = def(Name, _).
+
+resolved_import(import_chain(Chain), TypeInfo, ASTNode) :-
+    length(Chain, L), L > 2,
+    append(PathList, [Name], Chain),
+    atomic_list_concat(PathList, '/', Path),
+    resolved_import(import_chain([Path, Name]), TypeInfo, ASTNode).
+
+resolved_import(import_chain(BadChain), _, _) :- throw(import_error(BadChain)).
 
 is_import(import_chain(_)).
 

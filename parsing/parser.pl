@@ -7,8 +7,7 @@ parse(Tokens, AST) :-
     print_term(TypeInfo, [indent_arguments(true)]).
 
 parse(Tokens, TypeInfo, AST) :-
-    phrase(program(TypeInfo, AST), Tokens),
-    print_term(AST, [indent_arguments(true)]).
+    phrase(program(TypeInfo, AST), Tokens).
 
 parse_type_info(Tokens, TypeInfo) :-
     phrase(type_statements(TypeInfo), Tokens).
