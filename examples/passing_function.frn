@@ -1,0 +1,21 @@
+{:
+    [Int32, Int32 -> Int32]
+        sum;
+
+    [End -> IO]
+        main;
+    
+    [(Int32, Int32 -> Int32), Int32, Int32 -> Int32]
+        apply;
+:}
+
+std::putInt32;
+std::debug;
+
+sum := a, b -> a + b;
+
+apply := f, a, b -> f(a, b);
+
+main := putInt32(debug(),
+    apply(sum, 1, 2)
+);
