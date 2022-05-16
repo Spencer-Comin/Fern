@@ -419,6 +419,11 @@ static foreign_t generate_struct(term_t components, term_t type, term_t node) {
 	return PL_unify_pointer(node, static_cast<void *>(structure));
 }
 
+static foreign_t generate_cast(term_t from, term_t to_type, term_t to) {
+	Value *casted = generator->generate_cast(term_to_pointer<Value>(from), term_to_pointer<Type>(to_type));
+	return PL_unify_pointer(to, casted);
+}
+
 extern "C" install_t install() {
 	PL_register_foreign("codegen_number", 2, reinterpret_cast<pl_function_t>(generate_number), 0);
 	PL_register_foreign("codegen_float", 2, reinterpret_cast<pl_function_t>(generate_float), 0);
@@ -427,6 +432,7 @@ extern "C" install_t install() {
 	PL_register_foreign("codegen_fbinary", 4, reinterpret_cast<pl_function_t>(generate_fbinary), 0);
 	PL_register_foreign("codegen_func_call", 4, reinterpret_cast<pl_function_t>(generate_func_call), 0);
 	PL_register_foreign("codegen_struct", 3, reinterpret_cast<pl_function_t>(generate_struct), 0);
+	PL_register_foreign("codegen_cast", 3, reinterpret_cast<pl_function_t>(generate_cast), 0);
 
 	PL_register_foreign("codegen_func_head", 7, reinterpret_cast<pl_function_t>(generate_func_head), 0);
 	PL_register_foreign("codegen_func_body", 2, reinterpret_cast<pl_function_t>(generate_func_body), 0);

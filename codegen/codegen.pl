@@ -111,6 +111,11 @@ generate(struct(ASTNodes): T, ArgValues, Node) :-
     typegen(T, LLVM_T),
     codegen_struct(MemberNodes, LLVM_T, Node).
 
+generate(cast(AST): T, ArgValues, Node) :-
+    generate(AST, ArgValues, FromNode),
+    typegen(T, LLVM_T),
+    codegen_cast(FromNode, LLVM_T, Node).
+
 generate(BadNode, ArgValues, LLVMNode) :-
     throw(bad_generate(BadNode, ArgValues, LLVMNode)).
 

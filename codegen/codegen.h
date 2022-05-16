@@ -76,6 +76,7 @@ public:
 	Value *generate_dereference(Value *val, Type *val_points_to);
 	Value *generate_heap_copy(Value *val);
 	Value *generate_struct(std::vector<Value *> components, StructType *type);
+	Value *generate_cast(Value *from, Type *to_type);
 
 	std::pair<BasicBlock*, BasicBlock*> generate_if_cond(Value *condition); // returns else block, merge block
 	BasicBlock *start_if_else(BasicBlock *else_bb, BasicBlock *merge); // returns updated then block

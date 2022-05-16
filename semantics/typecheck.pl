@@ -29,7 +29,7 @@ typecheck(Assigns,
     (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
     foldl(assign_type, SourceTypes, Params, Assigns, AugmentedAssigns),
     typecheck(AugmentedAssigns, Body, AnnotatedBody),
-    resolve_pointers(AnnotatedBody, TargetType, PartialResolvedBody),
+    reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
     (resolve_heap_copy(PartialResolvedBody, ResolvedBody)
         ; ResolvedBody = PartialResolvedBody).
 
@@ -41,7 +41,7 @@ typecheck(Assigns,
     Type = morphism(SourceType, TargetType),
     assign_type(SourceType, Param, Assigns, AugmentedAssigns),
     typecheck(AugmentedAssigns, Body, AnnotatedBody),
-    resolve_pointers(AnnotatedBody, TargetType, PartialResolvedBody),
+    reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
     (resolve_heap_copy(PartialResolvedBody, ResolvedBody)
         ; ResolvedBody = PartialResolvedBody).
 
@@ -52,7 +52,7 @@ typecheck(Assigns,
     get_assoc(Name, Assigns, Type),
     Type = morphism("End", TargetType),
     typecheck(Assigns, Body, AnnotatedBody),
-    resolve_pointers(AnnotatedBody, TargetType, PartialResolvedBody),
+    reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
     resolve_heap_copy(PartialResolvedBody, ResolvedBody).
 
 typecheck(Assigns,
@@ -102,16 +102,16 @@ typecheck(Assigns,
           call(ResolvedFunc, ResolvedArg): TargetType) :- 
     Arg = struct(_),
     typecheck(Assigns, Func, AnnotatedFunc),
-    resolve_pointers(AnnotatedFunc, morphism(SourceType, TargetType), ResolvedFunc),
+    reconcile(AnnotatedFunc, morphism(SourceType, TargetType), ResolvedFunc),
     (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
     % typecheck the struct argument and children
     typecheck(Assigns, Arg, struct(AnnotatedArgs): _),
     % resolve pointers on each individual child of the struct and recompose
-    maplist(resolve_pointers, AnnotatedArgs, SourceTypes, ResolvedArgs),
+    maplist(reconcile, AnnotatedArgs, SourceTypes, ResolvedArgs),
     maplist(arg(2), ResolvedArgs, ResolvedTypes),
     AnnotatedArg = struct(ResolvedArgs): typeproduct(ResolvedTypes),
     % resolve pointer on recomposed struct
-    resolve_pointers(AnnotatedArg, SourceType, ResolvedArg).
+    reconcile(AnnotatedArg, SourceType, ResolvedArg).
 
 % call (single argument)
 typecheck(Assigns,
@@ -121,7 +121,7 @@ typecheck(Assigns,
     typecheck(Assigns, Func, ResolvedFunc),
     ResolvedFunc = _: morphism(SourceType, TargetType),
     typecheck(Assigns, Arg, AnnotatedArg),
-    resolve_pointers(AnnotatedArg, SourceType, ResolvedArg).
+    reconcile(AnnotatedArg, SourceType, ResolvedArg).
 
 % if
 typecheck(Assigns,
@@ -146,11 +146,14 @@ typecheck(_, BadNode, _) :- throw(type_error(BadNode)).
 % resolvers
 
 % given node of type T while looking for T, good
-resolve_pointers(Node: T, U, Node: U) :- T = U ; nonvar(T), nonvar(U), promotable(T, U).
+reconcile(Node: T, T, Node: T).
+reconcile(Node: T, U, cast(Node: T): U) :- nonvar(T), nonvar(U), promotable(T, U).
 % given node of type T while looking for ref(T), nest in reference
-resolve_pointers(Node: T, typeref(U), reference(Node: U): typeref(U)) :- T = U ; nonvar(T), nonvar(U), promotable(T, U).
+reconcile(Node: T, typeref(T), reference(Node: T): typeref(T)).
+reconcile(Node: T, typeref(U), reference(cast(Node: T): U): typeref(U)) :- nonvar(T), nonvar(U), promotable(T, U).
 % given node of type ref(T) while looking for T, nest in dereference
-resolve_pointers(Node: typeref(T), U, dereference(Node: typeref(U)): U) :- T = U ; nonvar(T), nonvar(U), promotable(T, U).
+reconcile(Node: typeref(T), T, dereference(Node: typeref(T)): T).
+reconcile(Node: typeref(T), U, dereference(cast(Node: typeref(T)): typeref(U)): U) :- nonvar(T), nonvar(U), promotable(T, U).
 
 % given referenced node that needs to be on heap, copy to heap
 resolve_heap_copy(reference(N): T, heap_copy(N): T).

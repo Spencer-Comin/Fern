@@ -251,6 +251,17 @@ Value *CodeGenerator::generate_struct(std::vector<Value *> components, StructTyp
 	return structure;
 }
 
+Value *CodeGenerator::generate_cast(Value *from, Type *to_type) {
+	if (to_type->isIntegerTy())
+		return Builder->CreateIntCast(from, to_type, true, from->getName() + ".cast");
+	else if (to_type->isFloatTy())
+		return Builder->CreateFPCast(from, to_type, from->getName() + ".cast");
+	else if (to_type->isPointerTy())
+		return Builder->CreatePointerCast(from, to_type, from->getName() + ".cast");
+	else
+		return Builder->CreateBitCast(from, to_type, from->getName() + ".cast");
+}
+
 void CodeGenerator::jit_current_module() {
 	ExitOnErr(TheJIT->addModule(
 		ThreadSafeModule(std::move(TheModule), std::move(TheContext))));
