@@ -21,10 +21,27 @@ find_package(LLVM REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
-# set(LLVM_LINK_COMPONENTS all)  # This may come up later once I switch from JIT to AOT
-llvm_map_components_to_libnames(LLVM_LIBS core orcjit native)
+set(LLVM_LINK_COMPONENTS all)  # This may come up later once I switch from JIT to AOT
+llvm_map_components_to_libnames(LLVM_LIBS support core orcjit native all
+    aarch64asmparser     aarch64codegen     aarch64desc     aarch64disassembler     aarch64info     aarch64utils
+    amdgpuasmparser      amdgpucodegen      amdgpudesc      amdgpudisassembler      amdgpuinfo      amdgpuutils
+    armasmparser         armcodegen         armdesc         armdisassembler         arminfo         armutils
+    avrasmparser         avrcodegen         avrdesc         avrdisassembler         avrinfo
+    bpfasmparser         bpfcodegen         bpfdesc         bpfdisassembler         bpfinfo
+    hexagonasmparser     hexagoncodegen     hexagondesc     hexagondisassembler     hexagoninfo
+    lanaiasmparser       lanaicodegen       lanaidesc       lanaidisassembler       lanaiinfo
+    msp430asmparser      msp430codegen      msp430desc      msp430disassembler      msp430info
+    mipsasmparser        mipscodegen        mipsdesc        mipsdisassembler        mipsinfo
+    nvptxcodegen         nvptxdesc          nvptxinfo
+    powerpcasmparser     powerpccodegen     powerpcdesc     powerpcdisassembler     powerpcinfo
+    riscvasmparser       riscvcodegen       riscvdesc       riscvdisassembler       riscvinfo
+    sparcasmparser       sparccodegen       sparcdesc       sparcdisassembler       sparcinfo
+    systemzasmparser     systemzcodegen     systemzdesc     systemzdisassembler     systemzinfo
+    webassemblyasmparser webassemblycodegen webassemblydesc webassemblydisassembler webassemblyinfo webassemblyutils
+                         xcorecodegen       xcoredesc       xcoredisassembler       xcoreinfo)
 
 set(CODEGEN_SOURCES codegen/interface.cpp codegen/codegen.cpp semantics/typehandler.cpp)
 set(RUNTIME_SOURCES runtime/std.cpp runtime/memory.cpp)

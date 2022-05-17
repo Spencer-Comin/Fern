@@ -5,7 +5,8 @@
     jit_call/1,
     prep_codegen/0,
     llvm_type_print/1,
-    type_assign/2
+    type_assign/2,
+    dump_obj_file/1
 ]).
 :- use_module('../semantics/types').
 :- use_foreign_library(foreign('codegen/libcodegen.dylib')).

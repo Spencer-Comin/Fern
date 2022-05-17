@@ -424,6 +424,15 @@ static foreign_t generate_cast(term_t from, term_t to_type, term_t to) {
 	return PL_unify_pointer(to, casted);
 }
 
+static foreign_t dump_obj_file(term_t name) {
+	char *name_ptr;
+	if (!PL_get_atom_chars(name, &name_ptr)) {
+		PL_fail;
+	}
+	generator->dump_obj_file(std::string(name_ptr));
+	PL_succeed;
+}
+
 extern "C" install_t install() {
 	PL_register_foreign("codegen_number", 2, reinterpret_cast<pl_function_t>(generate_number), 0);
 	PL_register_foreign("codegen_float", 2, reinterpret_cast<pl_function_t>(generate_float), 0);
@@ -459,6 +468,7 @@ extern "C" install_t install() {
 
 	PL_register_foreign("jit_current_module", 0, reinterpret_cast<pl_function_t>(jit_current_module), 0);
 	PL_register_foreign("jit_call", 1, reinterpret_cast<pl_function_t>(jit_call), 0);
+	PL_register_foreign("dump_obj_file", 1, reinterpret_cast<pl_function_t>(dump_obj_file), 0);
 
 	PL_register_foreign("reset_generator", 0, reinterpret_cast<pl_function_t>(reset_generator), 0);
 }

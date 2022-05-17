@@ -1,4 +1,5 @@
 #include "codegen.h"
+#include "llvm/Support/TargetRegistry.h"
 #include <iostream>
 
 static ExitOnError ExitOnErr;
@@ -279,4 +280,54 @@ void CodeGenerator::jit_call(std::string name) {
 	FP();
 
 	ExitOnErr(rt->remove());
+}
+
+void CodeGenerator::dump_obj_file(std::string &&filename) {
+	auto TargetTriple = LLVMGetDefaultTargetTriple();
+	TheModule->setTargetTriple(TargetTriple);
+
+	InitializeAllTargetInfos();
+	InitializeAllTargets();
+	InitializeAllTargetMCs();
+	InitializeAllAsmParsers();
+	InitializeAllAsmPrinters();
+
+	std::string Error;
+	auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
+
+	// Print an error and exit if we couldn't find the requested target.
+	// This generally occurs if we've forgotten to initialise the
+	// TargetRegistry or we have a bogus target triple.
+	if (!Target) {
+		errs() << Error;
+		return;
+	}
+
+	auto CPU = "generic";
+	auto Features = "";
+
+	TargetOptions opt;
+	auto RM = Optional<Reloc::Model>();
+	auto TargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
+
+	TheModule->setDataLayout(TargetMachine->createDataLayout());
+
+	std::error_code EC;
+	raw_fd_ostream dest(filename, EC, sys::fs::OF_None);
+
+	if (EC) {
+		errs() << "Could not open file: " << EC.message();
+		return;
+	}
+
+	legacy::PassManager pass;
+	auto FileType = CGFT_ObjectFile;
+
+	if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+		errs() << "TargetMachine can't emit a file of this type";
+		return;
+	}
+
+	pass.run(*TheModule);
+	dest.flush();
 }

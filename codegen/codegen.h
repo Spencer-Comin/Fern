@@ -89,4 +89,5 @@ public:
 
 	void jit_current_module();  // TODO: return new module & context
 	void jit_call(std::string name);  // TODO: add support for args?
+	void dump_obj_file(std::string &&filename);
 };
