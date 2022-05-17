@@ -22,13 +22,22 @@ tokenize([In|T], Out, LineNo) :-
     tokenize(T, Out, LineNo).
 
 % numbers
-% TODO: add support for floating point, hex, binary, etc
+% TODO: add support for hex, binary, etc
 % TODO: add support for type (float, int)
+tokenize([In|T_i], [Out|T_o], LineNo) :-
+    code_type(In, digit),
+    consume_type([In|T_i], digit, [0'.|Next], WholeDigits),
+    consume_type(Next, digit, Remain, FractionDigits),
+    append(WholeDigits, [0'.|FractionDigits], DigitList),
+    number_codes(Value, DigitList),
+    Out = literal_t(fp(Value), LineNo),
+    tokenize(Remain, T_o, LineNo).
+
 tokenize([In|T_i], [Out|T_o], LineNo) :-
     code_type(In, digit),
     consume_type([In|T_i], digit, Remain, DigitList),
     number_codes(Value, DigitList),
-    Out = literal_t(number(Value), LineNo),
+    Out = literal_t(int(Value), LineNo),
     tokenize(Remain, T_o, LineNo).
 
 % strings

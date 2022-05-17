@@ -81,8 +81,15 @@ typecheck(Assigns,
 
 % number
 typecheck(_Assigns,
-          literal(number(Num)),
+          literal(int(Num)),
           literal(number(Num)): Type) :-
+    bounds(Type, Min, Max),
+    Num =< Max, Num >= Min.
+
+typecheck(_Assigns,
+          literal(fp(Num)),
+          literal(number(Num)): Type) :-
+    subtype(Type, "Float"),
     bounds(Type, Min, Max),
     Num =< Max, Num >= Min.
 

@@ -151,5 +151,5 @@ There must always be *one* input and *one* output.
 - [ ] Closures
 - [ ] Match expressions
 - [ ] String literals
-- [ ] Floating point literals
+- [x] Floating point literals
 - [ ] Type sums

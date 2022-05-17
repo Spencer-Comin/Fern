@@ -56,7 +56,8 @@ call_tail(Func, call(Func, A)) --> call_arg(A).
 call_arg(literal(nil)) --> [l_paren_t(_)], [r_paren_t(_)].
 call_arg(E) --> [l_paren_t(_)], expression(E), [r_paren_t(_)].
 
-primary(literal(number(Value))) --> [literal_t(number(Value), _)].
+primary(literal(int(Value))) --> [literal_t(int(Value), _)].
+primary(literal(fp(Value))) --> [literal_t(fp(Value), _)].
 primary(var(Name)) --> var(Name).
 primary(E) --> [l_paren_t(_)], expression(E), [r_paren_t(_)].
 
@@ -112,7 +113,7 @@ typeproduct(A) --> reference(A).
 reference(typeref(T)) --> [and_t(_)], array(T).
 reference(T) --> array(T).
 
-array(typeproduct(L)) --> type_primary(A), [star_t(_)], [literal_t(number(N), _)], {repeat(A, N, L)}.
+array(typeproduct(L)) --> type_primary(A), [star_t(_)], [literal_t(int(N), _)], {repeat(A, N, L)}.
 array(T) --> type_primary(T).
 
 type_primary(T) --> [identifier_t(T, _)].
