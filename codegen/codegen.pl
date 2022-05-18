@@ -59,6 +59,13 @@ generate_statement(declare(Name): T, Node, InGlobals, OutGlobals) :-
     put_assoc(Name, InGlobals, Node, OutGlobals).
 
 % binary
+generate(binary(Op, Left, Right): "Bool", ArgValues, Node) :-
+    generate(Left, ArgValues, LeftNode),
+    generate(Right, ArgValues, RightNode),
+    Left = _ : T,
+    ((subtype(T, "Float"), codegen_fbinary(LeftNode, RightNode, Op, Node)) ;
+    (subtype(T, "Int"), codegen_binary(LeftNode, RightNode, Op, Node))).
+
 generate(binary(Op, Left, Right): T, ArgValues, Node) :-
     generate(Left, ArgValues, LeftNode),
     generate(Right, ArgValues, RightNode),

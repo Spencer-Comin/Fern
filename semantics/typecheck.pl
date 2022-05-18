@@ -72,12 +72,15 @@ typecheck(Assigns,
 % TODO: add case for pointer arithmetic
 typecheck(Assigns,
           binary(Op, Left, Right),
-          binary(Op, AnnotatedLeft, AnnotatedRight): BinaryType) :-
+          binary(Op, ReconciledLeft, ReconciledRight): BinaryType) :-
     typecheck(Assigns, Left, AnnotatedLeft),
     typecheck(Assigns, Right, AnnotatedRight),
     _: RightType = AnnotatedRight,
     _: LeftType = AnnotatedLeft,
-    binary_type(Op, LeftType, RightType, BinaryType).
+    binary_type(Op, LeftType, RightType, BinaryType),
+    biggest(LeftType, RightType, BigType),
+    reconcile(AnnotatedLeft,  BigType, ReconciledLeft),
+    reconcile(AnnotatedRight, BigType, ReconciledRight).
 
 % number
 typecheck(_Assigns,
@@ -133,13 +136,15 @@ typecheck(Assigns,
 % if
 typecheck(Assigns,
           if(Cond, Then, Else),
-          if(AnnotatedCond, AnnotatedThen, AnnotatedElse): Type) :-
+          if(AnnotatedCond, ReconciledThen, ReconciledElse): Type) :-
     typecheck(Assigns, Cond, AnnotatedCond),
     typecheck(Assigns, Then, AnnotatedThen),
     typecheck(Assigns, Else, AnnotatedElse),
     AnnotatedCond = _: "Bool",
-    AnnotatedThen = _: Type,
-    AnnotatedElse = _: Type.
+    AnnotatedThen = _: ThenType, promotable(ThenType, Type),
+    AnnotatedElse = _: ElseType, promotable(ElseType, Type),
+    reconcile(AnnotatedThen, Type, ReconciledThen),
+    reconcile(AnnotatedElse, Type, ReconciledElse).
 
 % import
 typecheck(Assigns,

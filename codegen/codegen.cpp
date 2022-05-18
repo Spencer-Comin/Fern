@@ -132,7 +132,7 @@ PHINode *CodeGenerator::generate_if_merge(BasicBlock *merge, BasicBlock *then_bb
 	Function *func = Builder->GetInsertBlock()->getParent();
 	func->getBasicBlockList().push_back(merge);
 	Builder->SetInsertPoint(merge);
-	PHINode *pn = Builder->CreatePHI(Type::getDoubleTy(*TheContext), 2, "end_if_phi");
+	PHINode *pn = Builder->CreatePHI(then_v->getType(), 2, "end_if_phi");
 	pn->addIncoming(then_v, then_bb);
 	pn->addIncoming(else_v, else_bb);
 	return pn;
