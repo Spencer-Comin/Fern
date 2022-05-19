@@ -1,12 +1,20 @@
-:- module(types, [decompose/3, binary_type/4, bounds/3, bitwidth/2, subtype/2, promotable/2, biggest/3]).
-:- discontiguous subtype/2.
+:- module(types, [
+    op(200, fx, &),     % typeref
+    op(700, xfx, <:),   % subtype
+    op(200, fy, *),     % product
+    op(550, xfy, =>),   % function
+    (<:)/2,
+    binary_type/4,
+    bounds/3,
+    bitwidth/2,
+    promotable/2,
+    biggest/3
+    ]).
+:- discontiguous (<:)/2.
 :- discontiguous subtypes/2.
 :- discontiguous bitwidth/2.
 :- discontiguous bounds/3.
 :- discontiguous type/1.
-:- discontiguous equivalent/2.
-:- table equivalent/2.
-:- table binary_type/2.
 
 %% BUILT IN TYPES
 
@@ -36,12 +44,10 @@ subtypes("Float32",  "Float"). bitwidth("Float32",  32).  bounds("Float32", -100
 subtypes("Float64",  "Float"). bitwidth("Float64",  64).  bounds("Float64", -100000000, 100000000).
 subtypes("Float128", "Float"). bitwidth("Float128", 128). bounds("Float128", -10000000000000000, 10000000000000000).
 
-equivalent("Byte", "UInt8").
-
-subtype(X, X).
-subtype(X, Z) :-
+X <: X.
+X <: Z :-
     subtypes(X, Y),
-    subtype(Y, Z).
+    Y <: Z.
 
 % promotable
 
@@ -60,86 +66,37 @@ promotable(X, Y) :-
 
 %% COMPOSITE TYPE RULES
 
-% equivalencies
-equivalent(X, X). % identity
-equivalent(X, Z) :- equivalent(X,  Y), equivalent(Y, Z). % transitivity
-equivalent(X, Y) :- equivalent(Y, X), !. % commutativity
-type(X) :- equivalent(X, Y), type(Y).
-% bitwidth(T, S) :- bitwidth(Q, S), equivalent(T, Q).
-
-% isomorphicitiy
-isomorphic(morphism("Unit", Y), Y) :- !. % global element
-isomorphic(morphism(X, Y), morphism(FX, FY)) :- isomorphic(X, FX), isomorphic(Y, FY).
-isomorphic(X, Y) :- equivalent(X, Y). % equivalency is a subset of isomorphicity
-isomorphic(X, Y) :- bitwidth(X, S), bitwidth(Y, S). % bytewise convertible
-isomorphic(X, Y) :- isomorphic(Y, X), !. % commutativity
-
-% definite types
-definite(T) :- \+ indefinite(T).
-
-indefinite(T) :- subtype(_, T).
-indefinite(morphism(X, Y)) :- indefinite(X) ; indefinite(Y).
-indefinite(typeproduct(X, Y)) :- indefinite(X) ; indefinite(Y).
-indefinite(typesum(X, Y)) :- indefinite(X) ; indefinite(Y).
-indefinite(ref(X)) :- indefinite(X).
-
 % X -> Y
-type(morphism(X, Y)) :- type(X), type(Y).
-bitwidth(morphism(_, _), 8). % assuming 8B function pointers
+type(X => Y) :- type(X), type(Y).
+bitwidth(_ => _, 64). % assuming 64 bit function pointers
 
 % X Y Z ...
-type(typeproduct(Xs)) :- maplist(type, Xs).
-bitwidth(typroduct(Xs), S) :-
+type(*Xs) :- maplist(type, Xs).
+bitwidth(*Xs, S) :-
     maplist(bitwidth, Xs, bitwidths),
     sum_list(bitwidths, S).
-equivalent(typeproduct([X]), X).
 
 % X | Y | Z | ...
+% Not implemented yet!
 type(typesum(Xs)) :- maplist(type, Xs).
 bitwidth(typesum(Xs), S) :-
     maplist(bitwidth, Xs, bitwidths),
     max_list(bitwidths, Max),
     S is Max + 1.  % Add one byte to tag the union
-equivalent(typesum([X]), X).
 
-% ,X
-type(ref(X)) :- type(X).
-subtype(ref(_), "Reference").
-subtype(ref(X), ref(Y)) :- subtype(X, Y).
-bitwidth(ref(_), 8). % assuming 8B pointers
-% offset pointers
-with_offset(ref(X), ref(Y, N)) :- resolve_offset(X, N, Y).
-resolve_offset(_, Off, _) :- Off < 0, fail.
-resolve_offset(X, 0, X).
-resolve_offset(typeproduct(Xs), Off, typeproduct(Ys)) :-
-    append(Prefix, Ys, Xs),
-    length(Prefix, Off).
-
-% X: label
-equivalent(annotated(X, _), X).
-
-% cast checking
-fits_in(X, Y) :- bitwidth(X, SX), bitwidth(Y, SY), SX =< SY.
-
-
-%% TYPE INFERENCE
-decompose(T, 1, [T]).
-decompose("End", 0, []).
-decompose(typeproduct(Xs), N, Xs) :- length(Xs, N).
-
-% supports(Type, Operation)
-supports("Number", +).
-supports("Number", -).
-supports("Number", *).
-supports("Number", /).
+% &X
+type(&X) :- type(X).
+&_ <: "Reference".
+&X <: &Y :- X <: Y.
+bitwidth(&_, 64). % assuming 64 bit pointers
 
 % binary_type(Op, LeftType, RightType, BinaryType)
 binary_type(Op, LeftType, RightType, Type) :-
     arithmetic_op(Op),
     (
-        subtype(LeftType, "Int"), subtype(RightType, "Int")
+        LeftType <: "Int", RightType <: "Int"
     ;
-        subtype(LeftType, "Float"), subtype(RightType, "Float")
+        LeftType <: "Float", RightType <: "Float"
     ),
     (promotable(RightType, LeftType) ->
         Type = LeftType ;
@@ -147,8 +104,8 @@ binary_type(Op, LeftType, RightType, Type) :-
 
 binary_type(Op, LeftType, RightType, "Bool") :-
     comparison_op(Op),
-    subtype(LeftType, "Number"),
-    subtype(RightType, "Number").
+    LeftType <: "Number",
+    RightType <: "Number".
 
 arithmetic_op(+).
 arithmetic_op(-).

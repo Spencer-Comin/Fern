@@ -63,20 +63,20 @@ generate(binary(Op, Left, Right): "Bool", ArgValues, Node) :-
     generate(Left, ArgValues, LeftNode),
     generate(Right, ArgValues, RightNode),
     Left = _ : T,
-    ((subtype(T, "Float"), codegen_fbinary(LeftNode, RightNode, Op, Node)) ;
-    (subtype(T, "Int"), codegen_binary(LeftNode, RightNode, Op, Node))).
+    ((T <: "Float", codegen_fbinary(LeftNode, RightNode, Op, Node)) ;
+    (T <: "Int", codegen_binary(LeftNode, RightNode, Op, Node))).
 
 generate(binary(Op, Left, Right): T, ArgValues, Node) :-
     generate(Left, ArgValues, LeftNode),
     generate(Right, ArgValues, RightNode),
-    ((subtype(T, "Float"), codegen_fbinary(LeftNode, RightNode, Op, Node)) ;
-    (subtype(T, "Int"), codegen_binary(LeftNode, RightNode, Op, Node))).
+    ((T <: "Float", codegen_fbinary(LeftNode, RightNode, Op, Node)) ;
+    (T <: "Int", codegen_binary(LeftNode, RightNode, Op, Node))).
 
 % number
 generate(literal(number(Num)): T, _, Node) :-
-    (bitwidth(T, N), subtype(T, "UInt"), codegen_int(N, Num, false, Node)) ;
-    (bitwidth(T, N), subtype(T, "Int"), codegen_int(N, Num, true, Node)) ;
-    (subtype(T, "Float"), codegen_float(Num, Node)).
+    (bitwidth(T, N), T <: "UInt", codegen_int(N, Num, false, Node)) ;
+    (bitwidth(T, N), T <: "Int", codegen_int(N, Num, true, Node)) ;
+    (T <: "Float", codegen_float(Num, Node)).
 
 % nil
 generate(literal(nil): "End", _ArgValues, 0).
@@ -130,16 +130,16 @@ generate(BadNode, ArgValues, LLVMNode) :-
 generate_(ArgValues, AST, Node) :- generate(AST, ArgValues, Node).
 
 % typegen
-typegen(morphism(X, Y), LLVM_T) :-
+typegen(X => Y, LLVM_T) :-
     typegen(X, LLVM_X),
     typegen(Y, LLVM_Y),
     build_morphism(LLVM_X, LLVM_Y, LLVM_T).
 
-typegen(typeproduct(Xs), LLVM_T) :-
+typegen(*Xs, LLVM_T) :-
     maplist(typegen, Xs, LLVM_Xs),
     build_type_product(LLVM_Xs, LLVM_T).
 
-typegen(typeref(X), LLVM_T) :-
+typegen(&X, LLVM_T) :-
     typegen(X, LLVM_X),
     build_reference(LLVM_X, LLVM_T). 
 
@@ -153,9 +153,9 @@ type_assign(Name, Type) :-
     assign_llvm_type(Name, LLVM_T).
 
 % helpers
-decompose_param_types([], morphism("End", _), []).
-decompose_param_types([_], morphism(T, _), [T]).
-decompose_param_types(Params, morphism(typeproduct(Types), _), Types) :-
+decompose_param_types([], "End" => _, []).
+decompose_param_types([_], T => _, [T]).
+decompose_param_types(Params, *Types => _, Types) :-
     length(Params, L),
     length(Types, L).
 

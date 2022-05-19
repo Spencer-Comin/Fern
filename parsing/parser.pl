@@ -1,5 +1,6 @@
 :- module(parser, [parse/2, parse/3, parse_type_info/2]).
 :- use_module(lexer).
+:- use_module('../semantics/types').
 
 
 parse(Tokens, AST) :-
@@ -101,19 +102,19 @@ type_definition(typedef(Name, T)) --> [identifier_t(Name, _)], [walrus_t(_)], ty
 
 type_expression(T) --> morphism(T).
 
-morphism(morphism(X, Y)) --> typesum(X), [arrow_t(_)], morphism(Y).
+morphism(X => Y) --> typesum(X), [arrow_t(_)], morphism(Y).
 morphism(T) --> typesum(T).
 
 typesum(typesum([P|U])) --> typeproduct(P), [bar_t(_)], morphism(T), {T = typesum(U) ; typesum(_) \= T, [T] = U}.
 typesum(P) --> typeproduct(P).
 
-typeproduct(typeproduct([A|T])) --> reference(A), [comma_t(_)], morphism(P), {P = typeproduct(T) ; P \= typeproduct(_), [P] = T}.
+typeproduct(*[A|T]) --> reference(A), [comma_t(_)], morphism(P), {P = *T ; P \= *_, [P] = T}.
 typeproduct(A) --> reference(A).
 
-reference(typeref(T)) --> [and_t(_)], array(T).
+reference(&T) --> [and_t(_)], array(T).
 reference(T) --> array(T).
 
-array(typeproduct(L)) --> type_primary(A), [star_t(_)], [literal_t(int(N), _)], {repeat(A, N, L)}.
+array(*L) --> type_primary(A), [star_t(_)], [literal_t(int(N), _)], {repeat(A, N, L)}.
 array(T) --> type_primary(T).
 
 type_primary(T) --> [identifier_t(T, _)].

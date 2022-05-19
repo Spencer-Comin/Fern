@@ -25,8 +25,8 @@ typecheck(Assigns,
           def(Name, function(Params, ResolvedBody)): Type) :-
     length(Params, L), L > 1,
     get_assoc(Name, Assigns, Type),
-    Type = morphism(SourceType, TargetType),
-    (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
+    Type = SourceType => TargetType,
+    (SourceType = *SourceTypes ; SourceType = &(*SourceTypes)),
     foldl(assign_type, SourceTypes, Params, Assigns, AugmentedAssigns),
     typecheck(AugmentedAssigns, Body, AnnotatedBody),
     reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
@@ -38,7 +38,7 @@ typecheck(Assigns,
           def(Name, function([Param], Body)),
           def(Name, function([Param], ResolvedBody)): Type) :-
     get_assoc(Name, Assigns, Type),
-    Type = morphism(SourceType, TargetType),
+    Type = SourceType => TargetType,
     assign_type(SourceType, Param, Assigns, AugmentedAssigns),
     typecheck(AugmentedAssigns, Body, AnnotatedBody),
     reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
@@ -50,7 +50,7 @@ typecheck(Assigns,
           def(Name, function([], Body)),
           def(Name, function([], ResolvedBody)): Type) :-
     get_assoc(Name, Assigns, Type),
-    Type = morphism("End", TargetType),
+    Type = "End" => TargetType,
     typecheck(Assigns, Body, AnnotatedBody),
     reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
     resolve_heap_copy(PartialResolvedBody, ResolvedBody).
@@ -64,7 +64,7 @@ typecheck(Assigns,
 % struct
 typecheck(Assigns,
           struct(Expressions),
-          struct(TypedExpressions): typeproduct(Types)) :-
+          struct(TypedExpressions): *Types) :-
     maplist(typecheck(Assigns), Expressions, TypedExpressions),
     maplist(arg(2), TypedExpressions, Types).
 
@@ -92,7 +92,7 @@ typecheck(_Assigns,
 typecheck(_Assigns,
           literal(fp(Num)),
           literal(number(Num)): Type) :-
-    subtype(Type, "Float"),
+    Type <: "Float",
     bounds(Type, Min, Max),
     Num =< Max, Num >= Min.
 
@@ -112,14 +112,14 @@ typecheck(Assigns,
           call(ResolvedFunc, ResolvedArg): TargetType) :- 
     Arg = struct(_),
     typecheck(Assigns, Func, AnnotatedFunc),
-    reconcile(AnnotatedFunc, morphism(SourceType, TargetType), ResolvedFunc),
-    (SourceType = typeproduct(SourceTypes) ; SourceType = typeref(typeproduct(SourceTypes))),
+    reconcile(AnnotatedFunc, SourceType => TargetType, ResolvedFunc),
+    (SourceType = *SourceTypes ; SourceType = &(*SourceTypes)),
     % typecheck the struct argument and children
     typecheck(Assigns, Arg, struct(AnnotatedArgs): _),
     % resolve pointers on each individual child of the struct and recompose
     maplist(reconcile, AnnotatedArgs, SourceTypes, ResolvedArgs),
     maplist(arg(2), ResolvedArgs, ResolvedTypes),
-    AnnotatedArg = struct(ResolvedArgs): typeproduct(ResolvedTypes),
+    AnnotatedArg = struct(ResolvedArgs): *ResolvedTypes,
     % resolve pointer on recomposed struct
     reconcile(AnnotatedArg, SourceType, ResolvedArg).
 
@@ -129,7 +129,7 @@ typecheck(Assigns,
           call(ResolvedFunc, ResolvedArg): TargetType) :-
     Arg \= struct(_),
     typecheck(Assigns, Func, ResolvedFunc),
-    ResolvedFunc = _: morphism(SourceType, TargetType),
+    ResolvedFunc = _: SourceType => TargetType,
     typecheck(Assigns, Arg, AnnotatedArg),
     reconcile(AnnotatedArg, SourceType, ResolvedArg).
 
@@ -161,11 +161,11 @@ typecheck(_, BadNode, _) :- throw(type_error(BadNode)).
 reconcile(Node: T, T, Node: T).
 reconcile(Node: T, U, cast(Node: T): U) :- nonvar(T), nonvar(U), promotable(T, U).
 % given node of type T while looking for ref(T), nest in reference
-reconcile(Node: T, typeref(T), reference(Node: T): typeref(T)).
-reconcile(Node: T, typeref(U), reference(cast(Node: T): U): typeref(U)) :- nonvar(T), nonvar(U), promotable(T, U).
+reconcile(Node: T, &T, reference(Node: T): &T).
+reconcile(Node: T, &U, reference(cast(Node: T): U): &U) :- nonvar(T), nonvar(U), promotable(T, U).
 % given node of type ref(T) while looking for T, nest in dereference
-reconcile(Node: typeref(T), T, dereference(Node: typeref(T)): T).
-reconcile(Node: typeref(T), U, dereference(cast(Node: typeref(T)): typeref(U)): U) :- nonvar(T), nonvar(U), promotable(T, U).
+reconcile(Node: &T, T, dereference(Node: &T): T).
+reconcile(Node: &T, U, dereference(cast(Node: &T): &U): U) :- nonvar(T), nonvar(U), promotable(T, U).
 
 % given referenced node that needs to be on heap, copy to heap
 resolve_heap_copy(reference(N): T, heap_copy(N): T).
