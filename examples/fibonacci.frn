@@ -1,0 +1,28 @@
+{:
+    [End -> IO]
+        main;
+    
+    [Int64 -> Int64]
+        fib;
+        fib_tail_rec;
+    
+    [Int64, Int64, Int64 -> Int64]
+        fib_helper;
+:}
+
+std::putInt64;
+std::debug;
+
+fib_helper := n, a, b -> n < 1 ? a
+                       : n < 2 ? b
+                       : fib_helper(n - 1, b, a + b);
+
+fib_tail_rec := n -> fib_helper(n, 0, 1);
+
+fib := n -> n < 1 ? 0
+          : n < 2 ? 1
+          : fib(n-1) + fib(n-2);
+
+main := putInt64(debug(),
+    fib_tail_rec(92)
+);
