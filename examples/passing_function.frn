@@ -16,6 +16,6 @@ sum := a, b -> a + b;
 
 apply := f, a, b -> f(a, b);
 
-main := putInt32(debug(),
+main := putInt32(&(debug(),
     apply(sum, 1, 2)
-);
+));

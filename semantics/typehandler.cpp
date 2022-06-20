@@ -47,6 +47,14 @@ Type *TypeHandler::build_product(vector<Type *> members) {
     return StructType::get(*context, members, true);
 }
 
+Type *TypeHandler::build_product(vector<Type *> members, string &&name ) {
+    for (auto &member : members) {
+        if (member->isFunctionTy())
+            member = PointerType::getUnqual(member);
+    }
+    return StructType::create(*context, members, name, true);
+}
+
 Type *TypeHandler::build_ref(Type *type) {
     return PointerType::getUnqual(type);
 }

@@ -1,47 +1,54 @@
-:- module(main, [parse_fern_source/3, fern_run/1, fern_compile/2]).
+:- module(main, [parse_fern_source/4, fern_run/1, fern_compile/2]).
 :- use_module(parsing/lexer).
 :- use_module(parsing/parser).
 :- use_module(codegen/codegen).
 :- use_module(semantics/typecheck).
 :- use_module(semantics/imports).
 
+fern_mode(release).
 
 fern_run(File) :-
-    parse_fern_source(File, TypedAST),
+    fern_mode(M),
+    parse_fern_source(File, TypedAST, M),
     prep_codegen,
     compile(TypedAST),
     jit_call("main").
 
 fern_compile(SourceFile, OutFile) :-
-    parse_fern_source(SourceFile, TypedAST),
+    fern_mode(M),
+    parse_fern_source(SourceFile, TypedAST, M),
     prep_codegen,
     compile(TypedAST),
     dump_obj_file(OutFile).
 
 fern_ir(File) :-
-    parse_fern_source(File, TypedAST),
+    fern_mode(M),
+    parse_fern_source(File, TypedAST, M),
     prep_codegen,
     llvm_print(TypedAST).
 
-parse_fern_source(File, CompleteTypeInfo, ResolvedAST) :-
-    (read_file_to_codes(File, Codes, []) ;
+parse_fern_source(File, CompleteTypeInfo, ResolvedAST, release) :-
+    (read_file_to_codes(File, Codes, []) ; throw(code_error)),
+    (tokenize(Codes, Tokens) ; throw(lexical_error)),
+    (parse(Tokens, TypeInfo, AST) ; throw(syntax_error)),
+    (resolve_imports(TypeInfo, AST, CompleteTypeInfo, ResolvedAST) ; throw(import_error)).
+
+parse_fern_source(File, CompleteTypeInfo, ResolvedAST, debug) :-
+    (time(read_file_to_codes(File, Codes, [])), format("read file successfully\n") ;
         throw(code_error)),
-    (tokenize(Codes, Tokens) ;
+    (time(tokenize(Codes, Tokens)), format("tokenized successfully\n") ;
         throw(lexical_error)),
-    (parse(Tokens, TypeInfo, AST) ;
+    (time(parse(Tokens, TypeInfo, AST)), format("parsed successfully\n") ;
         throw(syntax_error)),
-    (resolve_imports(TypeInfo, AST, CompleteTypeInfo, ResolvedAST) ;
-        throw(import_error)).
+    (time(resolve_imports(TypeInfo, AST, CompleteTypeInfo, ResolvedAST)), format("resolved imports successfully\n") ;
+        throw(import_error)),
+    flush_output.
 
-parse_fern_source(File, TypedAST) :-
-    parse_fern_source(File, CompleteTypeInfo, ResolvedAST),
-    catch(typecheck(CompleteTypeInfo, ResolvedAST, TypedAST),
-          TypeError,
-          handle_type_error(CompleteTypeInfo, ResolvedAST, TypeError)).
+parse_fern_source(File, TypedAST, release) :-
+    parse_fern_source(File, CompleteTypeInfo, ResolvedAST, release),
+    typecheck(CompleteTypeInfo, ResolvedAST, TypedAST).
 
-handle_type_error(TypeInfo, AST, Error) :-
-    Error = type_error(_),
-    print_term(Error, [indent_arguments(true)]), nl,
-    print_term(AST, [indent_arguments(true)]), nl,
-    print_term(TypeInfo, [indent_arguments(true)]), nl,
-    throw(Error).
+parse_fern_source(File, TypedAST, debug) :-
+    parse_fern_source(File, CompleteTypeInfo, ResolvedAST, debug),
+    time(typecheck(CompleteTypeInfo, ResolvedAST, TypedAST)),
+    format("typechecked successfully\n").

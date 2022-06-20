@@ -114,12 +114,20 @@ static foreign_t generate_func_call(term_t callee, term_t callee_type, term_t ar
 		callee = temp_callee;
 	}
 
-	FunctionCallee fc {term_to_pointer<FunctionType>(callee_type), term_to_pointer<Value>(callee)};
+	FunctionType *ft = term_to_pointer<FunctionType>(callee_type);
+	FunctionCallee fc{ft, term_to_pointer<Value>(callee)};
 	Value *n_val = generator->generate_func_call(fc, term_to_pointer<Value>(arg));
 	if (!n_val)
 		PL_fail;
 
-	return PL_unify_pointer(node, static_cast<void *>(n_val));
+	// unify with func_ptr if the call returns a function
+	if (ft->getReturnType()->isFunctionTy())
+		return PL_unify_term(node,
+							 PL_FUNCTOR_CHARS, "func_ptr", 2,
+							 PL_POINTER, n_val,
+							 PL_POINTER, ft->getReturnType());
+	else
+		return PL_unify_pointer(node, static_cast<void *>(n_val));
 }
 
 static foreign_t generate_func_head(term_t name, term_t param_list, term_t param_types, term_t type,
@@ -185,6 +193,12 @@ static foreign_t generate_func_head(term_t name, term_t param_list, term_t param
 }
 
 static foreign_t generate_func_body(term_t head, term_t body) {
+	if (PL_is_functor(body, PL_new_functor(PL_new_atom("func_ptr"), 2))) {
+		term_t temp_body = PL_new_term_ref();
+		if (!PL_get_arg(1, body, temp_body))
+			PL_fail;
+		body = temp_body;
+	}
 	void *head_ptr, *body_ptr;
 	if (!PL_get_pointer_ex(head, &head_ptr) ||
 		!PL_get_pointer_ex(body, &body_ptr))
@@ -419,6 +433,119 @@ static foreign_t generate_struct(term_t components, term_t type, term_t node) {
 	return PL_unify_pointer(node, static_cast<void *>(structure));
 }
 
+static foreign_t generate_lambda_head(term_t params, term_t param_types, term_t captures, term_t capture_types, term_t func_type,
+									  term_t lambda, term_t named_values, term_t save_point, term_t trampoline) {
+	term_t head = PL_new_term_ref();
+	term_t list = PL_copy_term_ref(params);
+
+	std::vector<std::string> param_vec {};
+	char *name;
+	size_t len;
+	while (PL_get_list_ex(list, head, list)) {
+		if (!PL_get_string(head, &name, &len))
+			PL_fail;
+		param_vec.push_back(std::string(name));
+	}
+
+	std::unordered_map<std::string, Type *> name_types {};
+	head = PL_new_term_ref();
+	list = PL_copy_term_ref(param_types);
+	for (unsigned i = 0; PL_get_list_ex(list, head, list); i++) {
+		name_types[param_vec[i]] = term_to_pointer<Type>(head);
+	}
+
+	std::vector<std::string> capture_vec;
+	head = PL_new_term_ref();
+	list = PL_copy_term_ref(captures);
+	while (PL_get_list_ex(list, head, list)) {
+		if (!PL_get_string(head, &name, &len))
+			PL_fail;
+		capture_vec.push_back(std::string(name));
+	}
+
+	std::vector<Type *> capture_type_vec;
+	head = PL_new_term_ref();
+	list = PL_copy_term_ref(capture_types);
+	for (unsigned i = 0; PL_get_list_ex(list, head, list); i++) {
+		Type *t = term_to_pointer<Type>(head);
+		capture_type_vec.push_back(t);
+		name_types[capture_vec[i]] = t;
+	}
+
+	Function *lambda_ptr;
+	map<string, Value *> name_value_map;
+	BasicBlock *save;
+	Value *tramp_ptr;
+	std::tie(
+		lambda_ptr,
+		name_value_map,
+		save,
+		tramp_ptr) = generator->generate_lambda_head(param_vec, capture_vec, capture_type_vec, term_to_pointer<FunctionType>(func_type));
+	
+	// build list of name, value
+	head = PL_new_term_ref();
+	list = PL_copy_term_ref(named_values);
+	for (auto const &name_value : name_value_map) {
+		std::string name = name_value.first;
+		Value *value = name_value.second;
+		// put name onto list
+		if (!PL_unify_list(list, head, list) || !PL_unify_string_chars(head, name.c_str()))
+			PL_fail;
+		
+		// put arg onto list
+		if (!PL_unify_list(list, head, list))
+			PL_fail;
+		if (name_types[name]->isFunctionTy()) {
+			if (!PL_unify_term(head,
+							   PL_FUNCTOR_CHARS, "func_ptr", 2,
+							   PL_POINTER, value,
+							   PL_POINTER, name_types[name]))
+				PL_fail;
+		} else if (!PL_unify_pointer(head, value))
+			PL_fail;
+	}
+	PL_unify_nil_ex(list);
+
+	return PL_unify_pointer(lambda, lambda_ptr)
+		&& PL_unify_pointer(save_point, save)
+		&& PL_unify_pointer(trampoline, tramp_ptr);
+}
+
+static foreign_t generate_lambda_body(term_t unexcised_lambda, term_t func_type, term_t body, term_t tramp, term_t save_point, term_t captures, term_t capture_types, term_t lambda) {
+	if (PL_is_functor(body, PL_new_functor(PL_new_atom("func_ptr"), 2))) {
+		term_t temp_body = PL_new_term_ref();
+		if (!PL_get_arg(1, body, temp_body))
+			PL_fail;
+		body = temp_body;
+	}
+	
+	std::vector<Value *> captures_vec{};
+	term_t head = PL_new_term_ref();
+	term_t list = PL_copy_term_ref(captures);
+	while (PL_get_list_ex(list, head, list)) {
+		captures_vec.push_back(term_to_pointer<Value>(head));
+	}
+
+	std::vector<Type *> capture_types_vec{};
+	head = PL_new_term_ref();
+	list = PL_copy_term_ref(capture_types);
+	while (PL_get_list_ex(list, head, list)) {
+		capture_types_vec.push_back(term_to_pointer<Type>(head));
+	}
+
+	Value *lambda_pointer = generator->generate_lambda_body(term_to_pointer<Function>(unexcised_lambda),
+															term_to_pointer<FunctionType>(func_type),
+															term_to_pointer<Value>(body),
+															term_to_pointer<Value>(tramp),
+															term_to_pointer<BasicBlock>(save_point),
+															captures_vec, capture_types_vec);
+	// return PL_unify_pointer(lambda, lambda_pointer);
+	return PL_unify_term(lambda,
+						 PL_FUNCTOR_CHARS, "func_ptr", 2,
+						 PL_POINTER, lambda_pointer,
+						 PL_POINTER, term_to_pointer<FunctionType>(func_type));
+}
+
 static foreign_t generate_cast(term_t from, term_t to_type, term_t to) {
 	Value *casted = generator->generate_cast(term_to_pointer<Value>(from), term_to_pointer<Type>(to_type));
 	return PL_unify_pointer(to, casted);
@@ -430,6 +557,11 @@ static foreign_t dump_obj_file(term_t name) {
 		PL_fail;
 	}
 	generator->dump_obj_file(std::string(name_ptr));
+	PL_succeed;
+}
+
+static foreign_t print_current_module() {
+	generator->print_current_module();
 	PL_succeed;
 }
 
@@ -445,6 +577,8 @@ extern "C" install_t install() {
 
 	PL_register_foreign("codegen_func_head", 7, reinterpret_cast<pl_function_t>(generate_func_head), 0);
 	PL_register_foreign("codegen_func_body", 2, reinterpret_cast<pl_function_t>(generate_func_body), 0);
+	PL_register_foreign("codegen_lambda_head", 9, reinterpret_cast<pl_function_t>(generate_lambda_head), 0);
+	PL_register_foreign("codegen_lambda_body", 8, reinterpret_cast<pl_function_t>(generate_lambda_body), 0);
 
 	PL_register_foreign("codegen_declaration", 3, reinterpret_cast<pl_function_t>(generate_declaration), 0);
 
@@ -465,6 +599,7 @@ extern "C" install_t install() {
 	PL_register_foreign("print_expression", 1, reinterpret_cast<pl_function_t>(print<Value>), 0);
 	PL_register_foreign("print_function", 1, reinterpret_cast<pl_function_t>(print<Function>), 0);
 	PL_register_foreign("print_type", 1, reinterpret_cast<pl_function_t>(print<Type>), 0);
+	PL_register_foreign("print_current_module", 0, reinterpret_cast<pl_function_t>(print_current_module), 0);
 
 	PL_register_foreign("jit_current_module", 0, reinterpret_cast<pl_function_t>(jit_current_module), 0);
 	PL_register_foreign("jit_call", 1, reinterpret_cast<pl_function_t>(jit_call), 0);

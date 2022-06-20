@@ -23,6 +23,6 @@ fib := n -> n < 1 ? 0
           : n < 2 ? 1
           : fib(n-1) + fib(n-2);
 
-main := putInt64(debug(),
+main := putInt64(&(debug(),
     fib_tail_rec(92)
-);
+));

@@ -1,0 +1,16 @@
+{:
+    [End -> IO]
+        main;
+
+    [Int64 -> Int64 -> Int64]
+        sum;
+:}
+
+std::putInt64;
+std::debug;
+
+sum := a -> b -> a + b;
+
+main := putInt64(&(debug(),
+    sum(3)(5)
+));

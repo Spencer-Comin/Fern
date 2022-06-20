@@ -22,38 +22,34 @@ typecheck(typeinfo(TypeStatements), AST, AnnotatedAST) :-
 % def (multiple params)
 typecheck(Assigns,
           def(Name, function(Params, Body)),
-          def(Name, function(Params, ResolvedBody)): Type) :-
+          def(Name, function(TypedParams, ResolvedBody)): F) :-
     length(Params, L), L > 1,
-    get_assoc(Name, Assigns, Type),
-    Type = SourceType => TargetType,
-    (SourceType = *SourceTypes ; SourceType = &(*SourceTypes)),
-    foldl(assign_type, SourceTypes, Params, Assigns, AugmentedAssigns),
-    typecheck(AugmentedAssigns, Body, AnnotatedBody),
-    reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
-    (resolve_heap_copy(PartialResolvedBody, ResolvedBody)
-        ; ResolvedBody = PartialResolvedBody).
+    get_assoc(Name, Assigns, F),
+    F = S => T,
+    S = *Ss,
+    foldl(assign_type, Ss, Params, Assigns, AugmentedAssigns),
+    maplist(with_type, Params, Ss, TypedParams),
+    typecheck(AugmentedAssigns, Body, ResolvedBody),
+    has_type(ResolvedBody, T).
 
 % def (single param)
 typecheck(Assigns,
           def(Name, function([Param], Body)),
-          def(Name, function([Param], ResolvedBody)): Type) :-
-    get_assoc(Name, Assigns, Type),
-    Type = SourceType => TargetType,
-    assign_type(SourceType, Param, Assigns, AugmentedAssigns),
-    typecheck(AugmentedAssigns, Body, AnnotatedBody),
-    reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
-    (resolve_heap_copy(PartialResolvedBody, ResolvedBody)
-        ; ResolvedBody = PartialResolvedBody).
+          def(Name, function([Param: S], ResolvedBody)): F) :-
+    get_assoc(Name, Assigns, F),
+    F = S => T,
+    assign_type(S, Param, Assigns, AugmentedAssigns),
+    typecheck(AugmentedAssigns, Body, ResolvedBody),
+    has_type(ResolvedBody, T).
 
 % def (no param)
 typecheck(Assigns,
           def(Name, function([], Body)),
-          def(Name, function([], ResolvedBody)): Type) :-
-    get_assoc(Name, Assigns, Type),
-    Type = "End" => TargetType,
-    typecheck(Assigns, Body, AnnotatedBody),
-    reconcile(AnnotatedBody, TargetType, PartialResolvedBody),
-    resolve_heap_copy(PartialResolvedBody, ResolvedBody).
+          def(Name, function([], ResolvedBody)): F) :-
+    get_assoc(Name, Assigns, F),
+    F = "End" => T,
+    typecheck(Assigns, Body, ResolvedBody),
+    has_type(ResolvedBody, T).
 
 typecheck(Assigns,
           def(Name, Body),
@@ -61,40 +57,92 @@ typecheck(Assigns,
     Body \= function(_, _),
     typecheck(Assigns, def(Name, function([], Body)), TypedBody).
 
+% TODO: figure multiple params and no param cases after figuring out single param
+% lambda (single param)
+typecheck(Assigns,
+          function([Param], Body),
+          lambda([Param: S], Captures, ResolvedBody): F) :-
+    freeze(F,
+        (F = S => T,
+        assign_type(S, Param, Assigns, AugmentedAssigns),
+        typecheck(AugmentedAssigns, Body, ResolvedBody),
+        has_type(ResolvedBody, T),
+        captures(Assigns, ResolvedBody, Vars),
+        subtract(Vars, [Param: S], Captures))).
+
+typecheck(Assigns,
+          function(Params, Body),
+          lambda(TypedParams, Captures, ResolvedBody): F) :-
+    freeze(F,
+        (F = S => T,
+        S = *Ss,
+        foldl(assign_type, Ss, Params, Assigns, AugmentedAssigns),
+        maplist(with_type, Params, Ss, TypedParams),
+        typecheck(AugmentedAssigns, Body, ResolvedBody),
+        has_type(ResolvedBody, T),
+        captures(Assigns, ResolvedBody, Vars),
+        subtract(Vars, TypedParams, Captures))).
+
+typecheck(Assigns,
+          function([], Body),
+          lambda([], Captures, ResolvedBody): F) :-
+    freeze(F,
+        (F = "End" => T,
+        typecheck(Assigns, Body, ResolvedBody),
+        has_type(ResolvedBody, T),
+        captures(Assigns, ResolvedBody, Captures))).
+
 % struct
 typecheck(Assigns,
           struct(Expressions),
-          struct(TypedExpressions): *Types) :-
+          struct(TypedExpressions): *Ts) :-
     maplist(typecheck(Assigns), Expressions, TypedExpressions),
-    maplist(arg(2), TypedExpressions, Types).
+    maplist(arg(2), TypedExpressions, Ts).
 
 % binary
 % TODO: add case for pointer arithmetic
 typecheck(Assigns,
           binary(Op, Left, Right),
-          binary(Op, ReconciledLeft, ReconciledRight): BinaryType) :-
-    typecheck(Assigns, Left, AnnotatedLeft),
-    typecheck(Assigns, Right, AnnotatedRight),
-    _: RightType = AnnotatedRight,
-    _: LeftType = AnnotatedLeft,
-    binary_type(Op, LeftType, RightType, BinaryType),
-    biggest(LeftType, RightType, BigType),
-    reconcile(AnnotatedLeft,  BigType, ReconciledLeft),
-    reconcile(AnnotatedRight, BigType, ReconciledRight).
+          binary(Op, ResolvedLeft, ResolvedRight): T) :-
+    arithmetic_op(Op),
+    typecheck(Assigns, Left, ResolvedLeft),
+    typecheck(Assigns, Right, ResolvedRight),
+    has_type(ResolvedLeft, T),
+    has_type(ResolvedRight, T),
+    T <: "Number".
+
+typecheck(Assigns,
+          binary(Op, Left, Right),
+          binary(Op, ResolvedLeft, ResolvedRight): "Bool") :-
+    comparison_op(Op),
+    typecheck(Assigns, Left, ResolvedLeft),
+    typecheck(Assigns, Right, ResolvedRight),
+    has_type(ResolvedLeft, T),
+    has_type(ResolvedRight, T),
+    T <: "Number".
+
+typecheck(Assigns,
+          reference(Body),
+          reference(ResolvedBody): &T) :-
+    typecheck(Assigns, Body, ResolvedBody),
+    has_type(ResolvedBody, T).
+
+typecheck(Assigns,
+          dereference(Body),
+          dereference(ResolvedBody): T) :-
+    typecheck(Assigns, Body, ResolvedBody),
+    has_type(ResolvedBody, &T).
 
 % number
 typecheck(_Assigns,
           literal(int(Num)),
-          literal(number(Num)): Type) :-
-    bounds(Type, Min, Max),
-    Num =< Max, Num >= Min.
+          literal(number(Num)): T) :-
+    freeze(T, T <: "Int").
 
 typecheck(_Assigns,
           literal(fp(Num)),
-          literal(number(Num)): Type) :-
-    Type <: "Float",
-    bounds(Type, Min, Max),
-    Num =< Max, Num >= Min.
+          literal(number(Num)): T) :-
+    freeze(T, T <: "Float").
 
 typecheck(_Assigns,
           literal(nil),
@@ -103,71 +151,68 @@ typecheck(_Assigns,
 % var
 typecheck(Assigns,
           var(Name),
-          var(Name): Type) :-
-    get_assoc(Name, Assigns, Type).
+          var(Name): T) :-
+    get_assoc(Name, Assigns, T).
 
-% call (multiple arguments)
+% call
 typecheck(Assigns,
           call(Func, Arg),
-          call(ResolvedFunc, ResolvedArg): TargetType) :- 
-    Arg = struct(_),
-    typecheck(Assigns, Func, AnnotatedFunc),
-    reconcile(AnnotatedFunc, SourceType => TargetType, ResolvedFunc),
-    (SourceType = *SourceTypes ; SourceType = &(*SourceTypes)),
-    % typecheck the struct argument and children
-    typecheck(Assigns, Arg, struct(AnnotatedArgs): _),
-    % resolve pointers on each individual child of the struct and recompose
-    maplist(reconcile, AnnotatedArgs, SourceTypes, ResolvedArgs),
-    maplist(arg(2), ResolvedArgs, ResolvedTypes),
-    AnnotatedArg = struct(ResolvedArgs): *ResolvedTypes,
-    % resolve pointer on recomposed struct
-    reconcile(AnnotatedArg, SourceType, ResolvedArg).
-
-% call (single argument)
-typecheck(Assigns,
-          call(Func, Arg),
-          call(ResolvedFunc, ResolvedArg): TargetType) :-
-    Arg \= struct(_),
-    typecheck(Assigns, Func, ResolvedFunc),
-    ResolvedFunc = _: SourceType => TargetType,
-    typecheck(Assigns, Arg, AnnotatedArg),
-    reconcile(AnnotatedArg, SourceType, ResolvedArg).
+          call(ResolvedFunc, ResolvedArg): T) :-
+    typecheck(Assigns, Arg, ResolvedArg),
+    has_type(ResolvedArg, S),
+    freeze(T, has_type(ResolvedFunc, S => T)),
+    typecheck(Assigns, Func, ResolvedFunc).
 
 % if
 typecheck(Assigns,
           if(Cond, Then, Else),
-          if(AnnotatedCond, ReconciledThen, ReconciledElse): Type) :-
-    typecheck(Assigns, Cond, AnnotatedCond),
-    typecheck(Assigns, Then, AnnotatedThen),
-    typecheck(Assigns, Else, AnnotatedElse),
-    AnnotatedCond = _: "Bool",
-    AnnotatedThen = _: ThenType, promotable(ThenType, Type),
-    AnnotatedElse = _: ElseType, promotable(ElseType, Type),
-    reconcile(AnnotatedThen, Type, ReconciledThen),
-    reconcile(AnnotatedElse, Type, ReconciledElse).
+          if(ResolvedCond, ResolvedThen, ResolvedElse): T) :-
+    has_type(ResolvedCond, "Bool"),
+    has_type(ResolvedThen, T),
+    has_type(ResolvedElse, T),
+    typecheck(Assigns, Cond, ResolvedCond),
+    typecheck(Assigns, Then, ResolvedThen),
+    typecheck(Assigns, Else, ResolvedElse).
 
 % import
 typecheck(Assigns,
           import(_, Name),
-          declare(Name): Type) :-
-    get_assoc(Name, Assigns, Type).
+          declare(Name): T) :-
+    get_assoc(Name, Assigns, T).
 
 % error
 typecheck(_, BadNode, _) :- throw(type_error(BadNode)).
 
-% resolvers
+% binary ops
+arithmetic_op(+).
+arithmetic_op(-).
+arithmetic_op(*).
+arithmetic_op(/).
 
-% given node of type T while looking for T, good
-reconcile(Node: T, T, Node: T).
-reconcile(Node: T, U, cast(Node: T): U) :- nonvar(T), nonvar(U), promotable(T, U).
-% given node of type T while looking for ref(T), nest in reference
-reconcile(Node: T, &T, reference(Node: T): &T).
-reconcile(Node: T, &U, reference(cast(Node: T): U): &U) :- nonvar(T), nonvar(U), promotable(T, U).
-% given node of type ref(T) while looking for T, nest in dereference
-reconcile(Node: &T, T, dereference(Node: &T): T).
-reconcile(Node: &T, U, dereference(cast(Node: &T): &U): U) :- nonvar(T), nonvar(U), promotable(T, U).
+comparison_op(<).
+comparison_op(>).
 
-% given referenced node that needs to be on heap, copy to heap
-resolve_heap_copy(reference(N): T, heap_copy(N): T).
-% otherwise nothing needs to be done
-resolve_heap_copy(X, X) :- X \= reference(_): _.
+% captures(+Assigns, +Node, -Captures).
+captures(_, literal(_): _, []).
+captures(Assigns, var(Name): T, Capture) :- get_assoc(Name, Assigns, T) -> Capture = [Name: T] ; Capture = [].
+captures(_, lambda(_, Captures, _): _, Captures).  % TODO: subtract parent params from child captures
+
+captures(Assigns, struct(Nodes): _, Captures) :-
+    maplist(captures(Assigns), Nodes, CaptureList),
+    ord_union(CaptureList, Captures).
+
+captures(Assigns, binary(_, Left, Right): _, Captures) :-
+    captures(Assigns, Left, LeftCaptures),
+    captures(Assigns, Right, RightCaptures),
+    ord_union(LeftCaptures, RightCaptures, Captures).
+
+captures(Assigns, call(Func, Arg): _, Captures) :-
+    captures(Assigns, Func, FuncCaptures),
+    captures(Assigns, Arg, ArgCaptures),
+    ord_union(FuncCaptures, ArgCaptures, Captures).
+
+captures(Assigns, if(Cond, Then, Else): _, Captures) :-
+    captures(Assigns, Cond, CondCaptures),
+    captures(Assigns, Then, ThenCaptures),
+    captures(Assigns, Else, ElseCaptures),
+    ord_union([CondCaptures, ThenCaptures, ElseCaptures], Captures).

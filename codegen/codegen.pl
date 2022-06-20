@@ -10,7 +10,7 @@
 ]).
 :- use_module('../semantics/types').
 :- use_foreign_library(foreign('codegen/libcodegen.dylib')).
-% :- table typegen/2.
+:- table typegen/2.
 :- discontiguous generate/2, generate/3.
 
 
@@ -21,8 +21,8 @@ compile(AST) :-
     foldl(generate_statement, AST, _Nodes, InGlobals, _OutGlobals).
 
 llvm_print(AST) :-
-    empty_assoc(InGlobals),
-    foldl(llvm_print, AST, InGlobals, _OutGlobals).
+    compile(AST),
+    print_current_module.
 
 llvm_print(def(Name, Func): T, InGlobals, OutGlobals) :-
     generate_statement(def(Name, Func): T, Node, InGlobals, OutGlobals),
@@ -41,9 +41,9 @@ llvm_type_print(T) :-
 % def
 generate_statement(def(Name, function(Params, Body)): T, Func, InGlobals, OutGlobals) :-
     typegen(T, LLVM_T),
-    decompose_param_types(Params, T, ParamTypes),
+    maplist(with_type, ParamNames, ParamTypes, Params),
     maplist(typegen, ParamTypes, LLVM_ParamTypes),
-    codegen_func_head(Name, Params, LLVM_ParamTypes, LLVM_T, Func, Node, NamesArgs),
+    codegen_func_head(Name, ParamNames, LLVM_ParamTypes, LLVM_T, Func, Node, NamesArgs),
     zip_to_pairs(NamesArgs, NameArgPairs),
     put_assoc(Name, InGlobals, Node, OutGlobals),
     assoc_to_list(OutGlobals, GlobalPairs),
@@ -124,6 +124,22 @@ generate(cast(AST): T, ArgValues, Node) :-
     typegen(T, LLVM_T),
     codegen_cast(FromNode, LLVM_T, Node).
 
+generate(lambda(Params, Captures, Body): T, ArgValues, Node) :-
+    typegen(T, LLVM_T),
+    maplist(with_type, ParamNames, ParamTypes, Params),
+    maplist(typegen, ParamTypes, LLVM_ParamTypes),
+    maplist(with_type, CaptureNames, CaptureTypes, Captures),
+    maplist(typegen, CaptureTypes, LLVM_CaptureTypes),
+    codegen_lambda_head(ParamNames, LLVM_ParamTypes, CaptureNames, LLVM_CaptureTypes, LLVM_T, Lambda, NamesArgs, SavePoint, Trampoline),
+    zip_to_pairs(NamesArgs, NameArgPairs),
+    assoc_to_list(ArgValues, GlobalPairs),
+    exclude(key_in(CaptureNames), GlobalPairs, UnshadowedPairs),
+    append(UnshadowedPairs, NameArgPairs, NamedPairs),
+    list_to_assoc(NamedPairs, NamedValues),
+    generate(Body, NamedValues, BodyNode),
+    maplist(get_value(ArgValues), CaptureNames, CaptureValues),
+    codegen_lambda_body(Lambda, LLVM_T, BodyNode, Trampoline, SavePoint, CaptureValues, LLVM_CaptureTypes, Node).
+
 generate(BadNode, ArgValues, LLVMNode) :-
     throw(bad_generate(BadNode, ArgValues, LLVMNode)).
 
@@ -153,11 +169,9 @@ type_assign(Name, Type) :-
     assign_llvm_type(Name, LLVM_T).
 
 % helpers
-decompose_param_types([], "End" => _, []).
-decompose_param_types([_], T => _, [T]).
-decompose_param_types(Params, *Types => _, Types) :-
-    length(Params, L),
-    length(Types, L).
-
 zip_to_pairs([], []).
 zip_to_pairs([A,B|T], [A-B|R]) :- zip_to_pairs(T, R).
+
+key_in(Names, Key-_) :- member(Key, Names).
+
+get_value(Assoc, Key, Value) :- get_assoc(Key, Assoc, Value).

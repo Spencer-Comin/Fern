@@ -12,7 +12,7 @@ resolved_import(import_chain(["std", Name]), TypeInfo, import(["std"], Name)) :-
 resolved_import(import_chain([Path, Name]), TypeInfo, ASTNode) :-
     dif(Path, "std"),
     atom_concat(Path, '.frn', FileName),
-    parse_fern_source(FileName, typeinfo(TypeInfo), AST),
+    parse_fern_source(FileName, typeinfo(TypeInfo), AST, release),
     member(ASTNode, AST),
     ASTNode = def(Name, _).
 
