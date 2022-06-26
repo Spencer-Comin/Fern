@@ -62,78 +62,77 @@ tokenize([In|T_i], [Out|T_o], LineNo) :-
     tokenize(Remain, T_o, LineNo).
 
 % symbols
-tokenize([0'{, 0':|T_i], [l_type_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0':, 0'}|T_i], [r_type_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'{, 0':|T_i],      ['{:'(LineNo)|T_o],  LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0':, 0'}|T_i],      [':}'(LineNo)|T_o],  LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'{|T_i],           ['{'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'}|T_i],           ['}'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'(|T_i],           ['('(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0')|T_i],           [')'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'[|T_i],           ['['(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0']|T_i],           [']'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0';|T_i],           [';'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'?|T_i],           ['?'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'{|T_i], [l_curly_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'}|T_i], [r_curly_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'(|T_i], [l_paren_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0')|T_i], [r_paren_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'[|T_i], [l_square_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0']|T_i], [r_square_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0':, 0'=|T_i],      [':='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0':, 0':|T_i],      ['::'(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0':|T_i],           [':'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'=, 0'=|T_i],      ['=='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'=|T_i],           ['='(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0';|T_i], [semicolon_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'?|T_i], [question_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'|, 0'||T_i],      ['||'(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'|, 0'=|T_i],      ['|='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'||T_i],           ['|'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0':, 0'=|T_i], [walrus_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0':, 0':|T_i], [namespace_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0':|T_i], [colon_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'=, 0'=|T_i], [equal_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'=|T_i], [assign_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'&, 0'&|T_i],      ['&&'(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'&, 0'=|T_i],      ['&='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'&|T_i],           ['&'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'|, 0'||T_i], [logical_or_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'|, 0'=|T_i], [or_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'||T_i], [bar_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'+, 0'+|T_i],      ['++'(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'+, 0'=|T_i],      ['+='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'+|T_i],           ['+'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'&, 0'&|T_i], [logical_and_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'&, 0'=|T_i], [and_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'&|T_i], [and_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'-, 0'-|T_i],      ['--'(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'-, 0'>|T_i],      ['->'(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'-, 0'=|T_i],      ['-='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'-|T_i],           ['-'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'+, 0'+|T_i], [increment_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'+, 0'=|T_i], [plus_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'+|T_i], [plus_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'!, 0'=|T_i],      ['!='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'!|T_i],           ['!'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'-, 0'-|T_i], [decrement_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'-, 0'>|T_i], [arrow_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'-, 0'=|T_i], [minus_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'-|T_i], [minus_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'~|T_i],           ['~'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'!, 0'=|T_i], [neq_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'!|T_i], [bang_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'@|T_i],           ['@'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'~|T_i], [tilde_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'@|T_i], [at_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0', , 0'=|T_i],     [',='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0',|T_i],           [','(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0', , 0'=|T_i], [comma_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0',|T_i], [comma_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'^, 0'=|T_i],      ['^='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'^|T_i],           ['^'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'^, 0'=|T_i], [xor_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'^|T_i], [xor_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'*, 0'=|T_i],      ['*='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'*|T_i],           ['*'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'*, 0'=|T_i], [multiply_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'*|T_i], [star_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'%, 0'=|T_i],      ['%='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'%|T_i],           ['%'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'%, 0'=|T_i], [modulo_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'%|T_i], [modulo_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'<, 0'=|T_i],      ['<='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'≤|T_i],           ['<='(LineNo)|T_o],  LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'<|T_i],           ['<'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'<, 0'=|T_i], [leq_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'≤|T_i], [leq_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'<|T_i], [lt_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'>, 0'=|T_i],      ['>='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'≥|T_i],           ['>='(LineNo)|T_o],  LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'>|T_i],           ['>'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'>, 0'=|T_i], [geq_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'≥|T_i], [geq_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'>|T_i], [gt_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'/, 0'=|T_i],      ['/='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'/|T_i],           ['/'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'÷, 0'=|T_i],      ['/='(LineNo)|T_o],  LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'÷|T_i],           ['/'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'/, 0'=|T_i], [divide_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'/|T_i], [divide_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'÷, 0'=|T_i], [divide_assign_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'÷|T_i], [divide_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'\\|T_i],          ['\\'(LineNo)|T_o],  LineNo) :-    tokenize(T_i, T_o, LineNo).
 
-tokenize([0'\\|T_i], [backslash_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-
-tokenize([0'., 0'., 0'.|T_i], [ellipsis_t(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
-tokenize([0'…|T_i], [ellipsis_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
-tokenize([0'.|T_i], [dot_t(LineNo)|T_o], LineNo) :- tokenize(T_i, T_o, LineNo).
+tokenize([0'., 0'., 0'.|T_i], ['...'(LineNo)|T_o], LineNo) :- !, tokenize(T_i, T_o, LineNo).
+tokenize([0'…|T_i],           ['...'(LineNo)|T_o], LineNo) :-    tokenize(T_i, T_o, LineNo).
+tokenize([0'.|T_i],           ['.'(LineNo)|T_o],   LineNo) :-    tokenize(T_i, T_o, LineNo).
 
 % utilities
 consume_type([], _, [], []).
