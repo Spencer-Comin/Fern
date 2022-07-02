@@ -105,8 +105,7 @@ type_assignment(type_assignment(T, N)) --> ['['(_)], type_expression(T), [']'(_)
 names([N|T]) --> [identifier_t(N, _)], [';'(_)], names(T).
 names([]) --> [].
 
-type_definition(typedef(Name, T)) --> [identifier_t(Name, _)], [':='(_)], type_expression(T), [';'(_)],
-                                      {throw(unsupported_error("Typedefs not supported yet"))}.
+type_definition(typedef(Name, T)) --> [identifier_t(Name, _)], [':='(_)], type_expression(T), [';'(_)].
 
 % type operators (LOWEST TO HIGHEST PRECEDENCE) -> & | , *
 % TODO: change array operator to []
