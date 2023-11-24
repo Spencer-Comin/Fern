@@ -1,3 +1,7 @@
+
+> [!CAUTION]
+> **I have abandoned this iteration of Fern. I've been slowly rewriting and reimagining Fern in OCaml. That repo is still private, but if you want to see what's going on there please reach out and I may add you as a collaborator.**
+
 # Fern
  A toy programming language built with LLVM and Prolog
  
